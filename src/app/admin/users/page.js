@@ -318,7 +318,7 @@ export default function UsersPage() {
             >
                 <div className="p-4">
                     <p className="text-gray-700 mb-4">
-                        Are you sure you want to delete user <span className="font-bold text-red-600">"{usersToDelete.name}"</span>?
+                        Are you sure you want to delete user <span className="font-bold text-red-600">&quot;{usersToDelete.name}&quot;</span>?
                         This action cannot be undone.
                     </p>
                     <div className="flex justify-end space-x-3">

@@ -145,7 +145,7 @@ export default function AuthorsPage() {
   const [authorToEditId, setAuthorToEditId] = useState(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [authorToDelete, setAuthorToDelete] = useState({ id: null, name: '' });
-  
+
   const loadAuthors = useCallback(async () => {
     setLoading(true);
     setHasError(false); // Reset error status on new attempt
@@ -327,7 +327,7 @@ export default function AuthorsPage() {
       >
         <div className="p-4">
           <p className="text-gray-700 mb-4">
-            Are you sure you want to delete author <span className="font-bold text-red-600">"{authorToDelete.name}"</span>?
+            Are you sure you want to delete author <span className="font-bold text-red-600">&quot;{authorToDelete.name}&quot;</span>?
             This action cannot be undone.
           </p>
           <div className="flex justify-end space-x-3">
