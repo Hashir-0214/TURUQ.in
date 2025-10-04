@@ -41,14 +41,14 @@ export default function Header() {
   return (
     <>
       <header className='fixed top-0 left-0 w-full z-50 bg-[#ffedd9] pb-2.5'>
-        <div className="max-w-7xl h-16 mx-auto rounded-[50px] border border-black flex items-center justify-between px-10 mt-4 relative">
+        <div className="max-w-7xl h-[70px] mx-auto rounded-[50px] border border-black flex items-center justify-between px-10 mt-[60px] relative">
           <nav className="flex items-center gap-6">
             <div
-              className={`hamburger-menu bg-red-500 rounded-full p-2 cursor-pointer transition-transform duration-300 ease-in-out ${isMenuOpen ? 'rotate-90' : ''
+              className={`hamburger-menu bg-red-600 rounded-full p-2 cursor-pointer border border-black transition-transform duration-300 ease-in-out ${isMenuOpen ? 'rotate-90' : ''
                 }`}
               onClick={toggleMenu}
             >
-              {isMenuOpen ? <X size={25} color="#fff" /> : <Menu size={25} color="#fff" />}
+              {isMenuOpen ? <X size={22} color="#fff" /> : <Menu size={22} color="#fff" />}
             </div>
             <div className="hidden md:flex gap-6">
               <Link
@@ -152,7 +152,7 @@ export default function Header() {
 
                 <div className="w-1/3">
                   <Image
-                    src="/images/featured-article.png"
+                    src="/images/hero_featured.jpg"
                     alt="Featured article image"
                     width={300}
                     height={200}
@@ -205,7 +205,7 @@ export default function Header() {
                   <div className="mb-4">
                     <div className="overflow-hidden rounded-lg">
                       <Image
-                        src="/images/article-1.png"
+                        src="/images/hero_featured.jpg"
                         alt="മാംഗ: ജാപ്പനീസ് കലാമണ്ഡലത്തിൽ ഇസ്ലാമിന്റെ"
                         width={200}
                         height={150}

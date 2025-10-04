@@ -1,7 +1,12 @@
 @import "tailwindcss";
 
+@font-face {
+  font-family: 'Rachana';
+  src: url('/fonts/Rachana.ttf');
+}
+
 :root {
-  --background: #ffffff;
+  --background: #ffedd9;
   --foreground: #171717;
 }
 
@@ -9,4 +14,16 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+.font-rachana {
+  font-family: 'Rachana', sans-serif;
+}
+
+.font-oswald {
+  font-family: 'Oswald', sans-serif;
+}
+
+img {
+  user-select: none;
 }
