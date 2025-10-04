@@ -7,6 +7,7 @@ import Sidebar from "@/components/admin/Sidebar";
 import { NotificationProvider } from "@/components/ui/notification/NotificationProvider";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
+import { LoaderCircle } from "lucide-react"; // Ensure LoaderCircle is imported if used here
 
 export default function Layout({ children }) {
     const pathname = usePathname();
@@ -14,10 +15,13 @@ export default function Layout({ children }) {
     const [loading, setLoading] = useState(true);
     
     const loginPage = pathname === '/admin/login';
+    const registerPage = pathname === '/admin/register';
+    // FIX: Combine both login and register into a single variable for clarity
+    const authPage = loginPage || registerPage; 
 
     // Fetch current user data
     useEffect(() => {
-        if (loginPage) {
+        if (authPage) { // Use authPage here
             setLoading(false);
             return;
         }
@@ -29,36 +33,42 @@ export default function Layout({ children }) {
                     const userData = await response.json();
                     setCurrentUser(userData);
                 } else {
-                    // If user is not authenticated, redirect to login
-                    window.location.href = '/admin/login';
+                    // On error, redirect to login
+                    // Only redirect if we are not already on the login page (to prevent infinite loops)
+                    if (!loginPage) {
+                        window.location.href = '/admin/login';
+                    }
                 }
             } catch (error) {
                 console.error('Failed to fetch current user:', error);
                 // On error, redirect to login
-                window.location.href = '/admin/login';
+                if (!loginPage) {
+                    window.location.href = '/admin/login';
+                }
             } finally {
                 setLoading(false);
             }
         };
 
         fetchCurrentUser();
-    }, [loginPage]);
+    }, [authPage, loginPage]); // Add authPage and loginPage to dependency array
 
     // Show loading spinner while fetching user data
-    if (loading && !loginPage) {
+    if (loading && !authPage) { // Use authPage here
         return (
             <NotificationProvider>
                 <div className="flex bg-[#ffedd9] min-h-screen items-center justify-center">
-                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-black"></div>
+                    <LoaderCircle className="animate-spin h-8 w-8 text-black" />
                 </div>
             </NotificationProvider>
         );
     }
 
+    // FIX: Use authPage to decide whether to render the full layout or just the children
     return (
         <NotificationProvider>
             <div className="flex bg-[#ffedd9]">
-                {loginPage ? (
+                {authPage ? (
                     <div className="min-h-screen min-w-screen">{children}</div>
                 ) : (
                     <>

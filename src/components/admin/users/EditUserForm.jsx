@@ -24,8 +24,6 @@ export const EditUserForm = ({ userId, onUserUpdated, onCancel }) => {
             setLoading(true);
             setError('');
             try {
-                // NOTE: The GET /api/admin/users route needs to support fetching a single user by ID,
-                // either via a query parameter (e.g., ?id=...) or a dedicated route ([id]/route.js).
                 const res = await fetch(`/api/admin/users?id=${userId}`, {
                     headers: { 'x-api-key': API_KEY_TO_SEND },
                 });
@@ -89,7 +87,6 @@ export const EditUserForm = ({ userId, onUserUpdated, onCancel }) => {
                     'Content-Type': 'application/json',
                     'x-api-key': API_KEY_TO_SEND,
                 },
-                // Send the ID along with the update data
                 body: JSON.stringify({ _id: userId, ...dataToSend }),
             });
 
@@ -227,15 +224,6 @@ export const EditUserForm = ({ userId, onUserUpdated, onCancel }) => {
                     className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm p-2 focus:border-green-500 focus:ring-green-500 text-sm"
                 />
             </div>
-            
-            {/* Status (Hidden/Optional - keeping it to show how to handle other schema fields) */}
-            {/*
-            <input
-                type="hidden"
-                name="status"
-                value={formData?.status || 'active'}
-            />
-            */}
             
             {/* Actions */}
             <div className="flex justify-end space-x-3 pt-2">

@@ -36,7 +36,6 @@ const fetchAuthors = async (addNotification) => {
     });
 
     if (!res.ok) {
-      // Throw an error with the status for better debugging
       const errorData = await res.json();
       throw new Error(errorData.message || `Failed to fetch authors: ${res.status}`);
     }
@@ -48,8 +47,9 @@ const fetchAuthors = async (addNotification) => {
     if (addNotification) {
       addNotification('error', error.message || 'Error loading authors.');
     }
-
-    return [];
+    return Promise.reject({
+      message: error.message || 'Error fetching authors.',
+    })
   }
 }
 
@@ -175,9 +175,7 @@ export default function AuthorsPage() {
     );
   }
 
-  // Render error state if needed, but the notification handles most of the feedback
   if (hasError && authors.length === 0 && !loading) {
-    // Optionally show a permanent error message on the page
     console.log('Authors page rendered with critical error.');
   }
   /* ------------- Handlers ------------- */
@@ -186,13 +184,12 @@ export default function AuthorsPage() {
   };
 
   const handleAuthorUpdated = (updatedAuthor) => {
-    // Replace the old author object with the new one in the state array
     setAuthors((prev) =>
       prev.map(author =>
         author._id === updatedAuthor._id ? updatedAuthor : author
       )
     );
-    setIsEditAuthorModalOpen(false); // Close the modal
+    setIsEditAuthorModalOpen(false);
     addNotification('success', `Author "${updatedAuthor.name}" updated successfully!`);
   };
 

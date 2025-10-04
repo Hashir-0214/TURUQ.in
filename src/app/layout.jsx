@@ -23,13 +23,14 @@ export default function RootLayout({ children }) {
 
   const isAdmin = pathname.startsWith('/admin');
   const loginPage = pathname === '/admin/login';
+  const registerPage = pathname === '/admin/register';
 
   return (
     <html lang="en" className={`${poppins.variable} ${oswald.variable}`}>
       <body>
-        {!isAdmin && !loginPage && <Header />}
+        {!isAdmin && !loginPage && !registerPage && <Header />}
         {children}
-        {!isAdmin && !loginPage && <Footer />}
+        {!isAdmin && !loginPage && !registerPage && <Footer />}
       </body>
     </html>
   );
