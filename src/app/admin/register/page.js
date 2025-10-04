@@ -1,25 +1,25 @@
-'use client';
+"use client";
 
-import { useNotification } from '@/components/ui/notification/NotificationProvider';
-import { useState } from 'react';
+import { useNotification } from "@/components/ui/notification/NotificationProvider";
+import { useState } from "react";
 
 export default function RegisterForm() {
   const { addNotification } = useNotification();
   const [formData, setFormData] = useState({
-    name: '',
-    username: '',
-    email: '',
-    password: '',
+    name: "",
+    username: "",
+    email: "",
+    password: "",
   });
 
   const handleSubmit = async (event) => {
     event.preventDefault(); // <-- This is the key line
 
     try {
-      const response = await fetch('/api/auth/register', {
-        method: 'POST',
+      const response = await fetch("/api/auth/register", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(formData),
       });
@@ -28,14 +28,20 @@ export default function RegisterForm() {
       console.log(result);
 
       if (response.ok) {
-        addNotification('success', 'Registration successful! You can now log in.');
+        addNotification(
+          "success",
+          "Registration successful! You can now log in."
+        );
         // Reset form or redirect
       } else {
-        addNotification('error', result.message || 'Registration failed. Please try again.');
+        addNotification(
+          "error",
+          result.message || "Registration failed. Please try again."
+        );
       }
     } catch (error) {
-      console.error('An error occurred:', error);
-      addNotification('error', 'An unexpected error occurred.');
+      console.error("An error occurred:", error);
+      addNotification("error", "An unexpected error occurred.");
     }
   };
 
@@ -44,8 +50,8 @@ export default function RegisterForm() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <form onSubmit={handleSubmit} className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
+    <div className="min-h-screen min-w-screen flex flex-col items-center justify-center">
+      {/* <form onSubmit={handleSubmit} className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
         <h2 className="text-2xl font-bold mb-6 text-center text-gray-800">Register</h2>
 
         <div className="mb-4">
@@ -98,7 +104,15 @@ export default function RegisterForm() {
         >
           Register
         </button>
-      </form>
+      </form> */}
+      <div className="text-center">
+        <h1 className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl md:text-4xl">
+          Registration Page
+        </h1>
+        <p className="text-sm text-red-500 font-light mb-6">
+          Closed For now by <span> admin</span>
+        </p>
+      </div>
     </div>
   );
 }

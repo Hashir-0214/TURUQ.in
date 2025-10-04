@@ -32,8 +32,6 @@ export const EditAuthorForm = ({ authorId, onAuthorUpdated, onCancel }) => {
             setLoading(true);
             setError('');
             try {
-                // NOTE: Assuming your GET /api/admin/authors endpoint can handle a query parameter for a single ID.
-                // If not, you may need a separate endpoint like GET /api/admin/authors/[id]
                 const res = await fetch(`/api/admin/authors?id=${authorId}`, { 
                     headers: { 'x-api-key': API_KEY_TO_SEND },
                 });
@@ -94,7 +92,6 @@ export const EditAuthorForm = ({ authorId, onAuthorUpdated, onCancel }) => {
                     'Content-Type': 'application/json',
                     'x-api-key': API_KEY_TO_SEND,
                 },
-                // Send the ID along with the update data
                 body: JSON.stringify({ _id: authorId, ...formData }), 
             });
 
