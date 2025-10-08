@@ -109,7 +109,7 @@ export default function AddPostForm({ onPostAdded, onCancel }) {
 
   /* ---------- render ---------- */
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4 overflow-y-auto w-[600px]">
       {error && (
         <div className="text-sm bg-red-100 text-red-700 p-3 rounded border border-red-300">
           {error}

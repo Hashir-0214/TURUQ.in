@@ -1,5 +1,3 @@
-// src/app/admin/layout.jsx
-
 'use client';
 
 import Header from "@/components/admin/Header";
@@ -7,7 +5,7 @@ import Sidebar from "@/components/admin/Sidebar";
 import { NotificationProvider } from "@/components/ui/notification/NotificationProvider";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
-import { LoaderCircle } from "lucide-react"; // Ensure LoaderCircle is imported if used here
+import { LoaderCircle } from "lucide-react"; 
 
 export default function Layout({ children }) {
     const pathname = usePathname();
@@ -16,12 +14,11 @@ export default function Layout({ children }) {
     
     const loginPage = pathname === '/admin/login';
     const registerPage = pathname === '/admin/register';
-    // FIX: Combine both login and register into a single variable for clarity
     const authPage = loginPage || registerPage; 
 
     // Fetch current user data
     useEffect(() => {
-        if (authPage) { // Use authPage here
+        if (authPage) { 
             setLoading(false);
             return;
         }
@@ -33,15 +30,12 @@ export default function Layout({ children }) {
                     const userData = await response.json();
                     setCurrentUser(userData);
                 } else {
-                    // On error, redirect to login
-                    // Only redirect if we are not already on the login page (to prevent infinite loops)
                     if (!loginPage) {
                         window.location.href = '/admin/login';
                     }
                 }
             } catch (error) {
                 console.error('Failed to fetch current user:', error);
-                // On error, redirect to login
                 if (!loginPage) {
                     window.location.href = '/admin/login';
                 }
@@ -51,10 +45,10 @@ export default function Layout({ children }) {
         };
 
         fetchCurrentUser();
-    }, [authPage, loginPage]); // Add authPage and loginPage to dependency array
+    }, [authPage, loginPage]); 
 
     // Show loading spinner while fetching user data
-    if (loading && !authPage) { // Use authPage here
+    if (loading && !authPage) {
         return (
             <NotificationProvider>
                 <div className="flex bg-[#ffedd9] min-h-screen items-center justify-center">
@@ -64,18 +58,27 @@ export default function Layout({ children }) {
         );
     }
 
-    // FIX: Use authPage to decide whether to render the full layout or just the children
     return (
         <NotificationProvider>
-            <div className="flex bg-[#ffedd9]">
+            {/* Use flex-col to stack Header (not shown) and content */}
+            <div className="flex flex-col bg-[#ffedd9] min-h-screen">
                 {authPage ? (
-                    <div className="min-h-screen min-w-screen">{children}</div>
+                    <div className="min-h-screen w-full">{children}</div>
                 ) : (
                     <>
                         <Header currentUser={currentUser} />
-                        <div className="flex w-[90%] max-w-[1200px] mx-auto mt-[150px] min-h-screen gap-10">
+                        {/* Content Wrapper: Uses a calculated height to reserve space above (150px) 
+                          and ensures the content container fills the rest of the viewport.
+                        */}
+                        <div 
+                            className="flex w-[90%] max-w-[1200px] mx-auto mt-[150px] gap-10"
+                            style={{ minHeight: 'calc(100vh - 150px)', paddingBottom: '3rem' }} 
+                        >
                             <Sidebar />
-                            <main className="flex-1 p-6">{children}</main>
+                            {/* FIX: Added overflow-y-auto to main to enable scrolling for its content */}
+                            <main className="flex-1 p-6 overflow-y-auto">
+                                {children}
+                            </main>
                         </div>
                     </>
                 )}

@@ -3,7 +3,7 @@
 import { X } from 'lucide-react';
 import { useEffect } from 'react';
 
-export default function Modal({ isOpen, onClose, title, children }) {
+export default function Modal({ isOpen, onClose, title, children, className }) {
   if (!isOpen) return null;
 
   // Close on Escape key press
@@ -21,12 +21,12 @@ export default function Modal({ isOpen, onClose, title, children }) {
 
   return (
     <div
-      className="fixed inset-0 bg-white/50 bg-opacity-50 flex items-center justify-center z-50 p-4"
-      onClick={onClose} // Close modal when clicking outside
+      className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-auto"
+      onClick={onClose} 
     >
       <div
-        className="bg-[#fff8f2] rounded-2xl p-6 shadow-xl max-w-lg w-full relative border border-red-200"
-        onClick={(e) => e.stopPropagation()} // Prevent closing when clicking inside modal
+        className={`bg-white rounded-2xl p-6 shadow-xl max-w-2xl w-full relative border border-red-200 overflow-y-auto max-h-[90vh] ${className}`}
+        onClick={(e) => e.stopPropagation()}
       >
         <button
           onClick={onClose}

@@ -274,6 +274,7 @@ export default function PostsPage() {
         isOpen={modal}
         onClose={() => setModal(false)}
         title="Add New Post"
+        className="max-w-2xl"
       >
         <AddPostForm
           onPostAdded={handleAdded}
