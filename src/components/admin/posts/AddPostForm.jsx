@@ -3,8 +3,9 @@
 
 import { useState, useEffect } from "react";
 import { Save, X, Loader2 } from "lucide-react";
+import Select from "@/components/ui/select/Select";
+import RichTextEditor from "../ui/text-editor/TextEditor";
 
-/* ---------- tiny helpers ---------- */
 const slugify = (str) =>
   str
     .toLowerCase()
@@ -12,16 +13,32 @@ const slugify = (str) =>
     .replace(/[^a-z0-9\s-]/g, "")
     .replace(/\s+/g, "-");
 
+const API_KEY = process.env.NEXT_PUBLIC_API_KEY;
+const API_HEADERS = { "x-api-key": API_KEY };
+
+const fetchAuthors = async () => {
+  const res = await fetch("/api/admin/authors", { headers: API_HEADERS });
+  if (!res.ok) throw new Error('Failed to fetch authors');
+  return res.json();
+};
+
+const fetchSubcategories = async () => {
+  const res = await fetch('/api/admin/subcategories', {
+    method: 'GET',
+    headers: API_HEADERS
+  });
+  if (!res.ok) throw new Error('Failed to fetch subcategories');
+  return res.json();
+};
+
 export default function AddPostForm({ onPostAdded, onCancel }) {
-  /* ---------- form state ---------- */
   const [values, setValues] = useState({
     title: "",
     slug: "",
     excerpt: "",
     content: "",
     author_id: "",
-    category_id: "",
-    subcategory_id: "",
+    subcategory_ids: [],
     tags: "",
     status: "draft",
     featured_image: "",
@@ -29,46 +46,62 @@ export default function AddPostForm({ onPostAdded, onCancel }) {
   });
 
   const [authors, setAuthors] = useState([]);
-  const [cats, setCats] = useState([]);
-  const [subCats, setSubCats] = useState([]);
+  const [allSubCats, setAllSubCats] = useState([]);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  /* ---------- initial data ---------- */
+  // FIX: Properly handle async operations in useEffect
   useEffect(() => {
-    Promise.all([
-      fetch("/api/admin/authors").then((r) => r.json()),
-      fetch("/api/admin/categories").then((r) => r.json()),
-    ])
-      .then(([aRes, cRes]) => {
-        setAuthors(aRes.data || []);
-        setCats(cRes.data || []);
-      })
-      .catch(() => setAuthors([]) || setCats([]));
+    const loadData = async () => {
+      try {
+        const [authorsData, subcategoriesData] = await Promise.all([
+          fetchAuthors(),
+          fetchSubcategories()
+        ]);
+        setAuthors(authorsData || []);
+        setAllSubCats(subcategoriesData || []);
+      } catch (err) {
+        console.error("Error loading data:", err);
+        setError("Failed to load form data");
+      }
+    };
+
+    console.log("Api Key:", API_KEY)
+    loadData();
   }, []);
 
-  /* ---------- auto-slug ---------- */
   useEffect(() => {
-    if (values.title) setValues((s) => ({ ...s, slug: slugify(values.title) }));
+    if (values.title) {
+      setValues((s) => ({ ...s, slug: slugify(values.title) }));
+    }
   }, [values.title]);
 
-  /* ---------- handlers ---------- */
   const handleChange = (e) => {
+    if (typeof e === 'string') {
+      setValues((s) => ({ ...s, content: e }));
+      setError("");
+      return;
+    }
+
     const { name, value, type, checked } = e.target;
-    setValues((s) => ({ ...s, [name]: type === "checkbox" ? checked : value }));
     setError("");
+
+    setValues((s) => ({ ...s, [name]: type === "checkbox" ? checked : value }));
   };
 
-  const handleCatChange = (e) => {
-    const catId = e.target.value;
-    setValues((s) => ({ ...s, category_id: catId, subcategory_id: "" }));
-    if (!catId) return setSubCats([]);
+  const handleSingleSelectChange = (name, newValue) => {
+    setValues(s => ({
+      ...s,
+      [name]: newValue ? newValue.value : ''
+    }));
+  };
 
-    fetch(`/api/admin/categories/${catId}/subcategories`)
-      .then((r) => r.json())
-      .then((res) => setSubCats(res.data || []))
-      .catch(() => setSubCats([]));
+  const handleMultiSelectChange = (name, newValue) => {
+    setValues(s => ({
+      ...s,
+      [name]: newValue.map(item => item.value)
+    }));
   };
 
   const handleSubmit = async (e) => {
@@ -76,30 +109,42 @@ export default function AddPostForm({ onPostAdded, onCancel }) {
     setLoading(true);
     setError("");
 
-    /* basic guard */
-    if (!values.title || !values.slug) {
-      setError("Title & slug are required.");
+    if (!values.title || !values.slug || !values.content || !values.author_id) {
+      setError("Title, slug, Content, and Author are required.");
       setLoading(false);
       return;
     }
 
+    const hasContent = values.content.replace(/<[^>]*>/g, '').trim().length > 0;
+    if (!hasContent) {
+      setError("Content must contain actual text.");
+      setLoading(false);
+      return;
+    }
+
+    const payload = {
+      ...values,
+      author_id: values.author_id === "" ? null : values.author_id,
+      tags: values.tags
+        .split(",")
+        .map((t) => t.trim())
+        .filter(Boolean),
+    };
+
     try {
       const res = await fetch("/api/admin/posts", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...values,
-          tags: values.tags
-            .split(",")
-            .map((t) => t.trim())
-            .filter(Boolean),
-        }),
+        headers: {
+          "Content-Type": "application/json",
+          ...API_HEADERS
+        },
+        body: JSON.stringify(payload), // Use the cleaned payload
       });
 
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || "Server error");
 
-      onPostAdded(json.data); // parent callback
+      onPostAdded(json.data);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -107,15 +152,39 @@ export default function AddPostForm({ onPostAdded, onCancel }) {
     }
   };
 
-  /* ---------- render ---------- */
+  // ADDED: Definition for Author Select options (Missing in original code)
+  const authorOptions = authors.map(author => ({
+    label: author.name,
+    value: author._id,
+  }));
+  const currentAuthorValue = authorOptions.find(opt => opt.value === values.author_id) || null;
+
+  // ADDED: Definition for Status Select options (Missing in original code)
+  const statusOptions = [
+    { label: 'Draft', value: 'draft' },
+    { label: 'Published', value: 'published' },
+    { label: 'Archived', value: 'archived' },
+  ];
+  const currentStatusValue = statusOptions.find(opt => opt.value === values.status) || null;
+
+
+  const subcategoryOptions = allSubCats.map(subCat => ({
+    label: subCat.name,
+    value: subCat._id, // Mongoose ID
+  }));
+
+  const currentSubcatValues = subcategoryOptions.filter(opt =>
+    values.subcategory_ids.includes(opt.value)
+  );
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 overflow-y-auto w-[600px]">
+    <form onSubmit={handleSubmit} className="space-y-4 overflow-y-auto">
       {error && (
         <div className="text-sm bg-red-100 text-red-700 p-3 rounded border border-red-300">
           {error}
         </div>
       )}
-      {/* Title */}
+
       <div>
         <label className="block text-sm font-medium mb-1">Title *</label>
         <input
@@ -126,7 +195,7 @@ export default function AddPostForm({ onPostAdded, onCancel }) {
           className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-500"
         />
       </div>
-      {/* Slug */}
+
       <div>
         <label className="block text-sm font-medium mb-1">Slug *</label>
         <input
@@ -137,7 +206,7 @@ export default function AddPostForm({ onPostAdded, onCancel }) {
           className="w-full border border-gray-300 rounded-md px-3 py-2 bg-gray-50"
         />
       </div>
-      {/* Excerpt */}
+
       <div>
         <label className="block text-sm font-medium mb-1">Excerpt</label>
         <textarea
@@ -148,71 +217,41 @@ export default function AddPostForm({ onPostAdded, onCancel }) {
           className="w-full border border-gray-300 rounded-md px-3 py-2"
         />
       </div>
-      {/* Content */}
+
       <div>
         <label className="block text-sm font-medium mb-1">Content</label>
-        <textarea
-          name="content"
-          value={values.content}
-          onChange={handleChange}
-          rows={6}
-          className="w-full border border-gray-300 rounded-md px-3 py-2 font-mono text-sm"
+        <RichTextEditor
+          value={values.content} // Passes the state value
+          onChange={handleChange} // Passes the function to update state
         />
       </div>
-      {/* Author */}
-      <div>
-        <label className="block text-sm font-medium mb-1">Author</label>
-        <select
-          name="author_id"
-          value={values.author_id}
-          onChange={handleChange}
-          className="w-full border border-gray-300 rounded-md px-3 py-2"
-        >
-          <option value="">— Select —</option>
-          {authors.map((a) => (
-            <option key={a._id} value={a._id}>
-              {a.name}
-            </option>
-          ))}
-        </select>
-      </div>
-      {/* Category → Subcategory */}
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium mb-1">Category</label>
-          <select
-            value={values.category_id}
-            onChange={handleCatChange}
-            className="w-full border border-gray-300 rounded-md px-3 py-2"
-          >
-            <option value="">— Select —</option>
-            {cats.map((c) => (
-              <option key={c._id} value={c._id}>
-                {c.name}
-              </option>
-            ))}
-          </select>
-        </div>
 
-        <div>
-          <label className="block text-sm font-medium mb-1">Sub-category</label>
-          <select
-            name="subcategory_id"
-            value={values.subcategory_id}
-            onChange={handleChange}
-            disabled={!subCats.length}
-            className="w-full border border-gray-300 rounded-md px-3 py-2 disabled:bg-gray-100"
-          >
-            <option value="">— Select —</option>
-            {subCats.map((s) => (
-              <option key={s._id} value={s._id}>
-                {s.name}
-              </option>
-            ))}
-          </select>
-        </div>
+      <div>
+        <label className="block text-sm font-medium mb-1">Author *</label>
+        <Select
+          options={authorOptions}
+          value={currentAuthorValue}
+          onChange={(newValue) => handleSingleSelectChange('author_id', newValue)}
+          placeholder="Select an Author"
+          isSearchable={true}
+          isClearable={false} // Author is required, so make it not clearable
+        />
       </div>
-      {/* Tags */}
+
+      <div>
+        <label className="block text-sm font-medium mb-1">Sub-categories (Multi-select) *</label>
+        <Select
+          options={subcategoryOptions}
+          value={currentSubcatValues}
+          onChange={(newValue) => handleMultiSelectChange('subcategory_ids', newValue)} // Using the multi-select handler
+          placeholder="Select one or more subcategories"
+          isMulti={true}
+          isSearchable={true}
+          size="md"
+          variant="default"
+        />
+      </div>
+
       <div>
         <label className="block text-sm font-medium mb-1">
           Tags (comma separated)
@@ -225,21 +264,18 @@ export default function AddPostForm({ onPostAdded, onCancel }) {
           className="w-full border border-gray-300 rounded-md px-3 py-2"
         />
       </div>
-      {/* Status */}
+
       <div>
         <label className="block text-sm font-medium mb-1">Status</label>
-        <select
-          name="status"
-          value={values.status}
-          onChange={handleChange}
-          className="w-full border border-gray-300 rounded-md px-3 py-2"
-        >
-          <option value="draft">Draft</option>
-          <option value="published">Published</option>
-          <option value="archived">Archived</option>
-        </select>
+        <Select
+          options={statusOptions}
+          value={currentStatusValue}
+          onChange={(newValue) => handleSingleSelectChange('status', newValue)}
+          placeholder="Select Status"
+          isClearable={false} // Status should always have a value
+        />
       </div>
-      /* Featured Image */
+
       <div>
         <label className="block text-sm font-medium mb-1">
           Featured Image URL
@@ -252,7 +288,7 @@ export default function AddPostForm({ onPostAdded, onCancel }) {
           className="w-full border border-gray-300 rounded-md px-3 py-2"
         />
       </div>
-      /* Comments enabled */
+
       <div className="flex items-center gap-2">
         <input
           id="comments"
@@ -266,7 +302,7 @@ export default function AddPostForm({ onPostAdded, onCancel }) {
           Enable comments
         </label>
       </div>
-      {/* Actions */}
+
       <div className="flex justify-end gap-3 pt-2">
         <button
           type="button"

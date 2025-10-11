@@ -2,16 +2,13 @@
 
 import Category from '@/models/Category';
 import { NextResponse } from 'next/server';
-import dbConnect from '@/mongodb'; // <-- IMPORT DB CONNECTION
+import dbConnect from '@/mongodb';
 
 const SERVER_API_KEY = process.env.NEXT_PUBLIC_API_KEY || process.env.API_KEY;
 
-// Utility function (assuming you copied it from page.js to route.js for server-side slug generation)
 const slugify = (text) => {
     if (!text) return '';
     let slug = text.toString().toLowerCase();
-    // Assuming MALAYALAM_MAP is also available here if needed for server-side slug validation
-
     return slug
         .trim()
         .replace(/\s+/g, '-')
@@ -19,8 +16,7 @@ const slugify = (text) => {
         .replace(/\-\-+/g, '-');
 };
 
-export async function GET(req, res) {
-    // ESTABLISH CONNECTION BEFORE QUERYING
+export async function GET(req) {
     try {
         await dbConnect(); 
     } catch (e) {
@@ -28,9 +24,11 @@ export async function GET(req, res) {
         return NextResponse.json({ message: 'Database connection failed' }, { status: 500 });
     }
     
-    const apikey = req.headers.get("x-api-key");;
-
-    if (apikey != SERVER_API_KEY) {
+    const apikey = req.headers.get("x-api-key");
+    
+    // FIX: Use strict equality and add better logging
+    if (!apikey || apikey !== SERVER_API_KEY) {
+        console.error("Auth failed. Received:", apikey ? "key present" : "no key", "Expected:", SERVER_API_KEY ? "key configured" : "no key configured");
         return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
@@ -44,7 +42,6 @@ export async function GET(req, res) {
 }
 
 export async function POST(req) {
-    // ESTABLISH CONNECTION BEFORE QUERYING
     try {
         await dbConnect(); 
     } catch (e) {
@@ -54,16 +51,17 @@ export async function POST(req) {
 
     const apikey = req.headers.get("x-api-key");
 
-    if (apikey != SERVER_API_KEY) {
+    // FIX: Use strict equality
+    if (!apikey || apikey !== SERVER_API_KEY) {
+        console.error("Auth failed in POST");
         return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
     let data;
 
     try {
-        data = await req.json(); // Data should be defined here
+        data = await req.json();
 
-        // 1. Handle Slug Auto-Generation/Validation (Prevents 500 on empty slug)
         let categorySlug = data.slug;
         if (!categorySlug || categorySlug.trim() === '') {
             if (!data.name) {

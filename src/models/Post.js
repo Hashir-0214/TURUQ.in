@@ -16,7 +16,7 @@ const PostSchema = new mongoose.Schema(
       trim: true,
     },
     content: {
-      type: String, 
+      type: String,
       required: true,
     },
     excerpt: {
@@ -25,18 +25,13 @@ const PostSchema = new mongoose.Schema(
     author_id: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Author',
-      default: null,
+      required: true,
     },
-    category_id: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Category',
-      default: null,
-    },
-    subcategory_id: {
+    subcategory_ids: [{
       type: mongoose.Schema.Types.ObjectId,
       ref: 'SubCategory',
-      default: null,
-    },
+      default: [],
+    }],
     tags: [{
       type: String,
       trim: true,

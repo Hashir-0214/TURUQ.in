@@ -89,7 +89,6 @@ const fetchCategories = async () => {
   });
   if (!res.ok) throw new Error('Failed to fetch categories');
   const data = await res.json();
-  // console.log('Categories:', data);
   return data;
 }
 

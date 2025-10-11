@@ -1,3 +1,4 @@
+// src/app/admin/posts/page.js
 "use client";
 
 import { useEffect, useState, useMemo } from "react";
@@ -9,10 +10,10 @@ import Modal from "@/components/admin/ui/modal/Modal";
 import AddPostForm from "@/components/admin/posts/AddPostForm";
 
 /* ------------------------------------------------------------------ */
-/*  API helpers                                                       */
+/* API helpers                                                       */
 /* ------------------------------------------------------------------ */
+const API_KEY_TO_SEND = process.env.NEXT_PUBLIC_API_KEY;
 const fetchPosts = async (addNotification) => {
-  const API_KEY_TO_SEND = process.env.NEXT_PUBLIC_API_KEY;
 
   if (!API_KEY_TO_SEND) {
     const msg = "API Key is missing. Check your .env.local file.";
@@ -49,27 +50,30 @@ const fetchPosts = async (addNotification) => {
     });
   }
 };
-const fetchCats = (addNotification) => {
-  return fetch("/api/admin/categories", {
-    method: "GET",
-    headers: {
-      "Content-Type": "application/json",
-    },
-  })
-    .then((res) => res.json())
-    .catch((error) => {
-      console.error("Fetch categories error:", error);
-      if (addNotification) {
-        addNotification("error", "Failed to fetch categories");
-      }
-      return Promise.reject({
-        message: "Failed to fetch categories",
-      });
+
+const fetchCats = async (addNotification) => {
+  try {
+    const res = await fetch("/api/admin/categories", {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": API_KEY_TO_SEND,
+      },
     });
+    return await res.json();
+  } catch (error) {
+    console.error("Fetch categories error:", error);
+    if (addNotification) {
+      addNotification("error", "Failed to fetch categories");
+    }
+    return await Promise.reject({
+      message: "Failed to fetch categories",
+    });
+  }
 };
 
 /* ------------------------------------------------------------------ */
-/*  Column definitions                                                */
+/* Column definitions                                                */
 /* ------------------------------------------------------------------ */
 const POSTS_COLUMNS = [
   {
@@ -81,11 +85,6 @@ const POSTS_COLUMNS = [
   {
     key: "author_name",
     header: "Author",
-    sortable: true,
-  },
-  {
-    key: "category_name",
-    header: "Category",
     sortable: true,
   },
   {
@@ -112,11 +111,10 @@ const POSTS_COLUMNS = [
     sortable: true,
     render: (p) => (
       <span
-        className={`px-2 py-1 rounded text-xs font-semibold border ${
-          p.status === "published"
-            ? "bg-green-100 text-green-800 border-green-300"
-            : "bg-yellow-100 text-yellow-800 border-yellow-300"
-        }`}
+        className={`px-2 py-1 rounded text-xs font-semibold border ${p.status === "published"
+          ? "bg-green-100 text-green-800 border-green-300"
+          : "bg-yellow-100 text-yellow-800 border-yellow-300"
+          }`}
       >
         {p.status}
       </span>
@@ -164,7 +162,7 @@ const POSTS_COLUMNS = [
 ];
 
 /* ------------------------------------------------------------------ */
-/*  Page component                                                    */
+/* Page component                                                    */
 /* ------------------------------------------------------------------ */
 export default function PostsPage() {
   const [posts, setPosts] = useState([]);
@@ -177,6 +175,7 @@ export default function PostsPage() {
   const load = async () => {
     setLoading(true);
     try {
+      // NOTE: Passing undefined for addNotification is safe as fetchPosts handles it.
       const [p, c] = await Promise.all([fetchPosts(), fetchCats()]);
       setPosts(p.data || []);
       setCats(c.data || []);
@@ -192,13 +191,15 @@ export default function PostsPage() {
     load();
   }, []);
 
-  /* ------------- handlers ------------- */
   const handleDelete = async (id) => {
     if (!confirm("Delete this post?")) return;
     try {
       const res = await fetch("/api/admin/posts", {
         method: "DELETE",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": API_KEY_TO_SEND // Ensure key is sent for delete as well
+        },
         body: JSON.stringify({ _id: id }),
       });
       if (!res.ok) throw new Error();
@@ -209,7 +210,6 @@ export default function PostsPage() {
   };
 
   const handleEdit = (id) => {
-    /* TODO: navigate to /admin/posts/edit/[id] */
     console.log("Edit post:", id);
   };
 
@@ -271,10 +271,13 @@ export default function PostsPage() {
 
       {/* create modal */}
       <Modal
+        // FIX: Add a key based on the 'modal' state to force a full re-render
+        // when the modal opens or closes, often fixing hydration issues.
+        key={`post-modal-${modal}`}
         isOpen={modal}
         onClose={() => setModal(false)}
         title="Add New Post"
-        className="max-w-2xl"
+        className="max-w-4xl"
       >
         <AddPostForm
           onPostAdded={handleAdded}

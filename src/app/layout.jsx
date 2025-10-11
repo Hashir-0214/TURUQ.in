@@ -27,7 +27,7 @@ export default function RootLayout({ children }) {
 
   return (
     <html lang="en" className={`${poppins.variable} ${oswald.variable}`}>
-      <body>
+      <body suppressHydrationWarning>
         {!isAdmin && !loginPage && !registerPage && <Header />}
         {children}
         {!isAdmin && !loginPage && !registerPage && <Footer />}
