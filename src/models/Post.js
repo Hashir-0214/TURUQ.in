@@ -41,6 +41,20 @@ const PostSchema = new mongoose.Schema(
       enum: ['draft', 'published', 'archived'],
       default: 'draft',
     },
+    permissions: {
+      is_slide_article: {
+        type: Boolean,
+        default: false,
+      },
+      is_premium: {
+        type: Boolean,
+        default: false,
+      },
+      is_featured: {
+        type: Boolean,
+        default: false,
+      },
+    },
     featured_image: {
       type: String,
       default: null,

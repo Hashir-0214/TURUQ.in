@@ -135,10 +135,10 @@ export default function Header() {
               <div className="flex mb-10">
                 <div className="w-2/3 pr-6">
                   <Tag link="/category/united" className="w-fit">united</Tag>
-                  <h3 className="font-rachana text-2xl font-medium mt-4 mb-3">
+                  <h3 className="local-font-rachana text-2xl font-medium mt-4 mb-3">
                     റബീഅ് സുഗന്ധം പരക്കുന്ന മൊറോക്കൻ വിഭവങ്ങൾ
                   </h3>
-                  <p className="font-rachana text-gray-600 mb-4">
+                  <p className="local-font-rachana text-gray-600 mb-4">
                     മൊറോക്കൻ സംസ്കാരവും മതവും സംഗമിക്കുന്ന ദിനമാണ് ഈദുൽ മൗലിദ്.
                     മൊറോക്കൊയിലെ മൊറോക്കൻ സംസ്കാരവും മതവും ദിനമാണ് ഈദുൽ മൗലിദ്.
                     മൊറോക്കൊയിലെ ഒരോ...

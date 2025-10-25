@@ -16,7 +16,7 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-.font-rachana {
+.local-font-rachana {
   font-family: 'Rachana', sans-serif;
 }
 
@@ -26,4 +26,24 @@ body {
 
 img {
   user-select: none;
+}
+
+.article-content p {
+  margin-bottom: 24px;
+  font-size: 25px;
+  font-weight: 400;
+  line-height: 35px;
+  color: #000;
+  text-indent: 30px;
+}
+
+.article-content img {
+  width: 1100px;
+  max-width: none;
+  height: auto;
+  display: block;
+  border-radius: 20px;
+  outline: 1px solid black;
+  outline-offset: 20px;
+  margin: 40px 0 40px -220px;
 }

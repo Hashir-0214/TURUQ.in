@@ -10,7 +10,7 @@ import Modal from "@/components/admin/ui/modal/Modal";
 import AddPostForm from "@/components/admin/posts/AddPostForm";
 
 /* ------------------------------------------------------------------ */
-/* API helpers                                                       */
+/* API helpers                                                       */
 /* ------------------------------------------------------------------ */
 const API_KEY_TO_SEND = process.env.NEXT_PUBLIC_API_KEY;
 const fetchPosts = async (addNotification) => {
@@ -60,20 +60,43 @@ const fetchCats = async (addNotification) => {
         "x-api-key": API_KEY_TO_SEND,
       },
     });
+    if (!res.ok) throw new Error(`Failed to fetch categories: ${res.status}`);
     return await res.json();
   } catch (error) {
     console.error("Fetch categories error:", error);
     if (addNotification) {
       addNotification("error", "Failed to fetch categories");
     }
-    return await Promise.reject({
+    return Promise.reject({
       message: "Failed to fetch categories",
     });
   }
 };
 
+const fetchAuthors = async (addNotification) => {
+  try {
+    const res = await fetch("/api/admin/authors", {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": API_KEY_TO_SEND,
+      },
+    });
+    if (!res.ok) throw new Error(`Failed to fetch authors: ${res.status}`);
+    return await res.json();
+  } catch (error) {
+    console.error("Fetch authors error:", error);
+    if (addNotification) {
+      addNotification("error", "Failed to fetch authors");
+    }
+    return Promise.reject({
+      message: "Failed to fetch authors",
+    });
+  }
+};
+
 /* ------------------------------------------------------------------ */
-/* Column definitions                                                */
+/* Column definitions                                                */
 /* ------------------------------------------------------------------ */
 const POSTS_COLUMNS = [
   {
@@ -162,11 +185,13 @@ const POSTS_COLUMNS = [
 ];
 
 /* ------------------------------------------------------------------ */
-/* Page component                                                    */
+/* Page component                                                    */
 /* ------------------------------------------------------------------ */
 export default function PostsPage() {
   const [posts, setPosts] = useState([]);
   const [categories, setCats] = useState([]);
+  // ADDED: State for authors (kept for completeness/future filtering)
+  const [authors, setAuthors] = useState([]);
   const [loading, setLoading] = useState(true);
   const [modal, setModal] = useState(false);
 
@@ -175,13 +200,17 @@ export default function PostsPage() {
   const load = async () => {
     setLoading(true);
     try {
-      // NOTE: Passing undefined for addNotification is safe as fetchPosts handles it.
-      const [p, c] = await Promise.all([fetchPosts(), fetchCats()]);
+      // MODIFIED: Added fetchAuthors to Promise.all
+      const [p, c, a] = await Promise.all([fetchPosts(), fetchCats(), fetchAuthors()]);
       setPosts(p.data || []);
       setCats(c.data || []);
-    } catch {
+      // ADDED: Setting authors state
+      setAuthors(a.data || []);
+    } catch (error) {
+      console.error("Initial data load failed:", error);
       setPosts([]);
       setCats([]);
+      setAuthors([]);
     } finally {
       setLoading(false);
     }
@@ -198,13 +227,14 @@ export default function PostsPage() {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
-          "x-api-key": API_KEY_TO_SEND // Ensure key is sent for delete as well
+          "x-api-key": API_KEY_TO_SEND
         },
         body: JSON.stringify({ _id: id }),
       });
-      if (!res.ok) throw new Error();
+      if (!res.ok) throw new Error("Delete failed");
       setPosts((prev) => prev.filter((p) => p._id !== id));
-    } catch {
+    } catch (error) {
+      console.error("Delete post error:", error);
       alert("Could not delete post.");
     }
   };
@@ -271,8 +301,6 @@ export default function PostsPage() {
 
       {/* create modal */}
       <Modal
-        // FIX: Add a key based on the 'modal' state to force a full re-render
-        // when the modal opens or closes, often fixing hydration issues.
         key={`post-modal-${modal}`}
         isOpen={modal}
         onClose={() => setModal(false)}

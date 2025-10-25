@@ -1,4 +1,5 @@
 // src/components/HeroSection.jsx
+"use client";
 
 import Image from 'next/image';
 import Link from 'next/link';
@@ -9,7 +10,7 @@ import Tag from './ui/tag';
 const featuredSlides = [
     {
         id: 1,
-        article_id: '12fs1f2sdf', // Identifier for a full article
+        article_id: '12fs1f2sdf',
         titleMalayalam: 'മാംഗ: ജാപ്പനീസ് കലാമണ്ഡലത്തിൽ ഇസ്ലാമിന്റെ ഇടം',
         slug: 'manga-islam-in-japanese-art',
         descriptionMalayalam: 'നാം നേരിടുന്ന എപിസ്റ്റമിക് കോളനിവൽക്കരണത്തിൻ്റെ അനന്തരഫലമെന്നോണം തന്നെ അക്കാദമിക ഗവേഷണതലങ്ങളിൽ സംഭവിക്കുന്നു. നാം നേരിടുന്ന എപിസ്റ്റമിക് കോളനിവൽക്കരണത്തിൻ്റെ',
@@ -107,13 +108,13 @@ export default function HeroSection() {
 
                     {/* Title */}
                     <Link href={link}>
-                        <h2 className="font-rachana max-w-[400px] h-[120px] text-[49px] font-[700] leading-[40px] text-[#a82a2a] hover:text-red-700 transition-colors">
+                        <h2 className="local-font-rachana max-w-[400px] h-[120px] text-[49px] font-[700] leading-[40px] text-[#a82a2a] hover:text-red-700 transition-colors">
                             {title}
                         </h2>
                     </Link>
 
                     {/* Description */}
-                    <p className="font-rachana max-w-[400px] text-[18px] h-[100px] leading-tight font-normal text-black">
+                    <p className="local-font-rachana max-w-[400px] text-[18px] h-[100px] leading-tight font-normal text-black">
                         {description}
                     </p>
 

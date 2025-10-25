@@ -1,8 +1,8 @@
 // src/components/admin/posts/AddPostForm.jsx
 "use client";
 
-import { useState, useEffect } from "react";
-import { Save, X, Loader2 } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { Save, X, Loader2, Upload } from "lucide-react";
 import Select from "@/components/ui/select/Select";
 import RichTextEditor from "../ui/text-editor/TextEditor";
 
@@ -45,13 +45,18 @@ export default function AddPostForm({ onPostAdded, onCancel }) {
     comments_enabled: true,
   });
 
+  // State for image handling
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [imageUploadLoading, setImageUploadLoading] = useState(false);
+  const [imageError, setImageError] = useState("");
+
+
   const [authors, setAuthors] = useState([]);
   const [allSubCats, setAllSubCats] = useState([]);
 
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false); // Main form submission loading
+  const [error, setError] = useState(""); // Main form error
 
-  // FIX: Properly handle async operations in useEffect
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -66,8 +71,6 @@ export default function AddPostForm({ onPostAdded, onCancel }) {
         setError("Failed to load form data");
       }
     };
-
-    console.log("Api Key:", API_KEY)
     loadData();
   }, []);
 
@@ -90,6 +93,50 @@ export default function AddPostForm({ onPostAdded, onCancel }) {
     setValues((s) => ({ ...s, [name]: type === "checkbox" ? checked : value }));
   };
 
+  // New handler for file input
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedFile(file);
+      setImageError("");
+      // Clear current image URL in state if a new file is selected
+      setValues(s => ({ ...s, featured_image: "" }));
+    } else {
+      setSelectedFile(null);
+    }
+  };
+
+  // Function to upload image to the server/Cloudinary
+  const uploadImage = useCallback(async (file) => {
+    setImageUploadLoading(true);
+    setImageError("");
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      // Call the new API route
+      const res = await fetch('/api/admin/posts/imageUpload', {
+        method: 'POST',
+        headers: API_HEADERS, // Pass API key for server auth
+        body: formData,
+      });
+
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.message || 'Image upload failed');
+
+      // Success: return the secured URL
+      return json.imageUrl;
+    } catch (err) {
+      console.error("Image upload error:", err);
+      setImageError(err.message);
+      setValues(s => ({ ...s, featured_image: "" })); // Clear URL on error
+      return null;
+    } finally {
+      setImageUploadLoading(false);
+    }
+  }, []);
+
   const handleSingleSelectChange = (name, newValue) => {
     setValues(s => ({
       ...s,
@@ -108,6 +155,7 @@ export default function AddPostForm({ onPostAdded, onCancel }) {
     e.preventDefault();
     setLoading(true);
     setError("");
+    setImageError("");
 
     if (!values.title || !values.slug || !values.content || !values.author_id) {
       setError("Title, slug, Content, and Author are required.");
@@ -122,8 +170,27 @@ export default function AddPostForm({ onPostAdded, onCancel }) {
       return;
     }
 
+    let finalImageUrl = values.featured_image;
+
+    if (selectedFile) {
+      // Stop if image upload is already in progress, though the button is disabled, this is a safety check
+      if (imageUploadLoading) {
+        setLoading(false);
+        return;
+      }
+
+      const url = await uploadImage(selectedFile);
+
+      if (!url) {
+        setLoading(false);
+        return;
+      }
+      finalImageUrl = url;
+    }
+
     const payload = {
       ...values,
+      featured_image: finalImageUrl, // Use the final confirmed URL
       author_id: values.author_id === "" ? null : values.author_id,
       tags: values.tags
         .split(",")
@@ -138,7 +205,7 @@ export default function AddPostForm({ onPostAdded, onCancel }) {
           "Content-Type": "application/json",
           ...API_HEADERS
         },
-        body: JSON.stringify(payload), // Use the cleaned payload
+        body: JSON.stringify(payload),
       });
 
       const json = await res.json();
@@ -149,6 +216,8 @@ export default function AddPostForm({ onPostAdded, onCancel }) {
       setError(err.message);
     } finally {
       setLoading(false);
+      // Clear file selection after successful submission
+      if (finalImageUrl) setSelectedFile(null);
     }
   };
 
@@ -177,13 +246,91 @@ export default function AddPostForm({ onPostAdded, onCancel }) {
     values.subcategory_ids.includes(opt.value)
   );
 
+  // URL for image preview (either uploaded URL or local file preview)
+  const imagePreviewUrl = values.featured_image
+    ? values.featured_image
+    : selectedFile
+      ? URL.createObjectURL(selectedFile)
+      : null;
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 overflow-y-auto">
+    <form onSubmit={handleSubmit} className="space-y-4">
       {error && (
         <div className="text-sm bg-red-100 text-red-700 p-3 rounded border border-red-300">
           {error}
         </div>
       )}
+
+      {/* FEATURED IMAGE UPLOAD SECTION */}
+      <div className="border p-4 rounded-lg bg-gray-50 space-y-3">
+        <label className="block text-sm font-bold text-gray-700 mb-1 flex items-center">
+          <Upload className="w-4 h-4 mr-2" /> Featured Image
+        </label>
+
+        {imageError && (
+          <div className="text-xs bg-red-100 text-red-700 p-2 rounded border border-red-300">
+            {imageError}
+          </div>
+        )}
+
+        {/* Display Current or Preview Image */}
+        {imagePreviewUrl && (
+          <div className="relative w-full max-w-sm h-40 overflow-hidden rounded-lg shadow-md">
+            <img
+              src={imagePreviewUrl}
+              alt="Featured Preview"
+              className="w-full h-full object-cover"
+            />
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedFile(null);
+                setValues(s => ({ ...s, featured_image: "" }));
+                setImageError("");
+              }}
+              className="absolute top-1 right-1 bg-red-600 text-white p-1 rounded-full hover:bg-red-700 transition"
+              aria-label="Remove Image"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+
+        <p className="text-xs text-gray-500">
+          Select a file to upload or enter a public URL below.
+        </p>
+
+        <input
+          type="file"
+          onChange={handleFileChange}
+          accept="image/*"
+          disabled={imageUploadLoading || !!values.featured_image}
+          className="w-full text-sm text-gray-500
+                  file:mr-4 file:py-2 file:px-4
+                  file:rounded-md file:border-0
+                  file:text-sm file:font-semibold
+                  file:bg-red-50 file:text-red-700
+                  hover:file:bg-red-100"
+        />
+
+        {imageUploadLoading && (
+          <div className="flex items-center text-red-600 text-sm mt-1">
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Uploading to Cloudinary...
+          </div>
+        )}
+
+        {/* Fallback/Manual URL Input */}
+        <input
+          name="featured_image"
+          value={values.featured_image}
+          onChange={handleChange}
+          placeholder="https://existing-image-url.com/image.jpg"
+          disabled={imageUploadLoading || !!selectedFile}
+          className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-500 text-sm"
+        />
+      </div>
+      {/* END FEATURED IMAGE UPLOAD SECTION */}
+
 
       <div>
         <label className="block text-sm font-medium mb-1">Title *</label>
@@ -221,8 +368,8 @@ export default function AddPostForm({ onPostAdded, onCancel }) {
       <div>
         <label className="block text-sm font-medium mb-1">Content</label>
         <RichTextEditor
-          value={values.content} // Passes the state value
-          onChange={handleChange} // Passes the function to update state
+          value={values.content}
+          onChange={handleChange}
         />
       </div>
 
@@ -234,7 +381,7 @@ export default function AddPostForm({ onPostAdded, onCancel }) {
           onChange={(newValue) => handleSingleSelectChange('author_id', newValue)}
           placeholder="Select an Author"
           isSearchable={true}
-          isClearable={false} // Author is required, so make it not clearable
+          isClearable={false}
         />
       </div>
 
@@ -243,7 +390,7 @@ export default function AddPostForm({ onPostAdded, onCancel }) {
         <Select
           options={subcategoryOptions}
           value={currentSubcatValues}
-          onChange={(newValue) => handleMultiSelectChange('subcategory_ids', newValue)} // Using the multi-select handler
+          onChange={(newValue) => handleMultiSelectChange('subcategory_ids', newValue)}
           placeholder="Select one or more subcategories"
           isMulti={true}
           isSearchable={true}
@@ -272,20 +419,7 @@ export default function AddPostForm({ onPostAdded, onCancel }) {
           value={currentStatusValue}
           onChange={(newValue) => handleSingleSelectChange('status', newValue)}
           placeholder="Select Status"
-          isClearable={false} // Status should always have a value
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium mb-1">
-          Featured Image URL
-        </label>
-        <input
-          name="featured_image"
-          value={values.featured_image}
-          onChange={handleChange}
-          placeholder="https://……"
-          className="w-full border border-gray-300 rounded-md px-3 py-2"
+          isClearable={false}
         />
       </div>
 
@@ -307,7 +441,7 @@ export default function AddPostForm({ onPostAdded, onCancel }) {
         <button
           type="button"
           onClick={onCancel}
-          disabled={loading}
+          disabled={loading || imageUploadLoading}
           className="px-4 py-2 text-sm border rounded-md hover:bg-gray-100"
         >
           <X className="inline w-4 h-4 mr-1" /> Cancel
@@ -315,7 +449,7 @@ export default function AddPostForm({ onPostAdded, onCancel }) {
 
         <button
           type="submit"
-          disabled={loading}
+          disabled={loading || imageUploadLoading}
           className="px-4 py-2 text-sm bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-60"
         >
           {loading ? (
