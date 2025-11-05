@@ -1,161 +1,36 @@
-// src/components/admin/posts/AddPostForm.jsx
+// src/components/admin/posts/EditPostForm.jsx
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Save, X, Loader2, Upload } from "lucide-react";
+import { Save, X, Loader2, Upload, RotateCw } from "lucide-react";
+// Assuming these imports exist in the user's project structure
 import Select from "@/components/ui/select/Select";
 import RichTextEditor from "../ui/text-editor/TextEditor";
 
+// --- START: Copied and adapted helper functions from AddPostForm.jsx ---
+
+// NOTE: Retaining the Malayalam slugify map and logic for consistency.
 const MALAYALAM_MAP = {
   // Vowels (independent)
-  അ: "a",
-  ആ: "aa",
-  ഇ: "i",
-  ഈ: "ee",
-  ഉ: "u",
-  ഊ: "oo",
-  ഋ: "ru",
-  എ: "e",
-  ഏ: "e",
-  ഐ: "ai",
-  ഒ: "o",
-  ഓ: "o",
-  ഔ: "au",
-
+  അ: "a", ആ: "aa", ഇ: "i", ഈ: "ee", ഉ: "u", ഊ: "oo", ഋ: "ru", എ: "e", ഏ: "e", ഐ: "ai", ഒ: "o", ഓ: "o", ഔ: "au",
   // Consonants (with inherent 'a')
-  ക: "ka",
-  ഖ: "kha",
-  ഗ: "ga",
-  ഘ: "gha",
-  ങ: "nga",
-  ച: "cha",
-  ഛ: "chha",
-  ജ: "ja",
-  ഝ: "jha",
-  ഞ: "nja",
-  ട: "ta",
-  ഠ: "tha",
-  ഡ: "da",
-  ഢ: "dha",
-  ണ: "na",
-  ത: "ta",
-  ഥ: "tha",
-  ദ: "da",
-  ധ: "dha",
-  ന: "na",
-  പ: "pa",
-  ഫ: "pha",
-  ബ: "ba",
-  ഭ: "bha",
-  മ: "ma",
-  യ: "ya",
-  ര: "ra",
-  ല: "la",
-  വ: "va",
-  ശ: "sha",
-  ഷ: "sha",
-  സ: "sa",
-  ഹ: "ha",
-  ള: "la",
-  ഴ: "zha",
-  റ: "ra",
-
-  // Chillu characters (consonants without inherent vowel)
-  ൺ: "n",
-  ൻ: "n",
-  ർ: "r",
-  ൽ: "l",
-  ൾ: "l",
-  ൿ: "k",
-
-  // Vowel signs (modify preceding consonant)
-  "ാ": "aa",
-  "ി": "i",
-  "ീ": "ee",
-  "ു": "u",
-  "ൂ": "oo",
-  "ൃ": "ru",
-  "െ": "e",
-  "േ": "e",
-  "ൈ": "ai",
-  "ൊ": "o",
-  "ോ": "o",
-  "ൗ": "au",
-  "ൌ": "au",
-
+  ക: "ka", ഖ: "kha", ഗ: "ga", ഘ: "gha", ങ: "nga", ച: "cha", ഛ: "chha", ജ: "ja", ഝ: "jha", ഞ: "nja", ട: "ta", ഠ: "tha", ഡ: "da", ഢ: "dha", ണ: "na", ത: "ta", ഥ: "tha", ദ: "da", ധ: "dha", ന: "na", പ: "pa", ഫ: "pha", ബ: "ba", ഭ: "bha", മ: "ma", യ: "ya", ര: "ra", ല: "la", വ: "va", ശ: "sha", ഷ: "sha", സ: "sa", ഹ: "ha", ള: "la", ഴ: "zha", റ: "ra",
+  // Chillu characters
+  ൺ: "n", ൻ: "n", ർ: "r", ൽ: "l", ൾ: "l", ൿ: "k",
+  // Vowel signs
+  "ാ": "aa", "ി": "i", "ീ": "ee", "ു": "u", "ൂ": "oo", "ൃ": "ru", "െ": "e", "േ": "e", "ൈ": "ai", "ൊ": "o", "ോ": "o", "ൗ": "au", "ൌ": "au",
   // Other signs
-  "ം": "m",
-  "ഃ": "h",
-  "്": "", // Virama removes inherent 'a'
-
+  "ം": "m", "ഃ": "h", "്": "",
   // Digits
-  "൦": "0",
-  "൧": "1",
-  "൨": "2",
-  "൩": "3",
-  "൪": "4",
-  "൫": "5",
-  "൬": "6",
-  "൭": "7",
-  "൮": "8",
-  "൯": "9",
+  "൦": "0", "൧": "1", "൨": "2", "൩": "3", "൪": "4", "൫": "5", "൬": "6", "൭": "7", "൮": "8", "൯": "9",
 };
 
-// Consonants without inherent vowel
 const CONSONANTS = new Set([
-  "ക",
-  "ഖ",
-  "ഗ",
-  "ഘ",
-  "ങ",
-  "ച",
-  "ഛ",
-  "ജ",
-  "ഝ",
-  "ഞ",
-  "ട",
-  "ഠ",
-  "ഡ",
-  "ഢ",
-  "ണ",
-  "ത",
-  "ഥ",
-  "ദ",
-  "ധ",
-  "ന",
-  "പ",
-  "ഫ",
-  "ബ",
-  "ഭ",
-  "മ",
-  "യ",
-  "ര",
-  "ല",
-  "വ",
-  "ശ",
-  "ഷ",
-  "സ",
-  "ഹ",
-  "ള",
-  "ഴ",
-  "റ",
+  "ക", "ഖ", "ഗ", "ഘ", "ങ", "ച", "ഛ", "ജ", "ഝ", "ഞ", "ട", "ഠ", "ഡ", "ഢ", "ണ", "ത", "ഥ", "ദ", "ധ", "ന", "പ", "ഫ", "ബ", "ഭ", "മ", "യ", "ര", "ല", "വ", "ശ", "ഷ", "സ", "ഹ", "ള", "ഴ", "റ",
 ]);
 
-// Vowel signs that modify consonants
 const VOWEL_SIGNS = new Set([
-  "ാ",
-  "ി",
-  "ീ",
-  "ു",
-  "ൂ",
-  "ൃ",
-  "െ",
-  "േ",
-  "ൈ",
-  "ൊ",
-  "ോ",
-  "ൗ",
-  "ൌ",
+  "ാ", "ി", "ീ", "ു", "ൂ", "ൃ", "െ", "േ", "ൈ", "ൊ", "ോ", "ൗ", "ൌ",
 ]);
 
 const VIRAMA = "്";
@@ -170,34 +45,28 @@ const slugify = (text) => {
     const char = normalized[i];
     const nextChar = normalized[i + 1];
 
-    // Check if current character is a consonant
     if (CONSONANTS.has(char)) {
       const baseConsonant = MALAYALAM_MAP[char];
 
-      // Check if followed by virama (removes inherent 'a')
       if (nextChar === VIRAMA) {
-        result += baseConsonant.slice(0, -1); // Remove the 'a'
-        i++; // Skip the virama
+        result += baseConsonant.slice(0, -1);
+        i++;
         continue;
       }
 
-      // Check if followed by vowel sign
       if (VOWEL_SIGNS.has(nextChar)) {
         const consonantWithoutA = baseConsonant.slice(0, -1);
         const vowelSound = MALAYALAM_MAP[nextChar];
         result += consonantWithoutA + vowelSound;
-        i++; // Skip the vowel sign
+        i++;
         continue;
       }
 
-      // Just the consonant with inherent 'a'
       result += baseConsonant;
     }
-    // Handle other characters
     else if (MALAYALAM_MAP[char] !== undefined) {
       result += MALAYALAM_MAP[char];
     } else {
-      // Keep non-Malayalam characters as is
       result += char;
     }
   }
@@ -208,11 +77,24 @@ const slugify = (text) => {
     .replace(/\s+/g, "-")
     .replace(/[^\w\-]+/g, "")
     .replace(/\-\-+/g, "-")
-    .replace(/^-+|-+$/g, ""); // Remove leading/trailing hyphens
+    .replace(/^-+|-+$/g, "");
 };
+// --- END: Copied helper functions ---
+
 
 const API_KEY = process.env.NEXT_PUBLIC_API_KEY;
 const API_HEADERS = { "x-api-key": API_KEY };
+
+// Fetch single post data, including populated author and subcategories
+const fetchPost = async (postId) => {
+    // Note: The API route is updated to handle 'id' as a query param for single fetches
+    const res = await fetch(`/api/admin/posts?id=${postId}`, { headers: API_HEADERS });
+    if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || "Failed to fetch post data");
+    }
+    return res.json();
+};
 
 const fetchAuthors = async () => {
   const res = await fetch("/api/admin/authors", { headers: API_HEADERS });
@@ -229,8 +111,13 @@ const fetchSubcategories = async () => {
   return res.json();
 };
 
-export default function AddPostForm({ onPostAdded, onCancel }) {
+export default function EditPostForm({ postId, onPostUpdated, onCancel }) {
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [initialPostData, setInitialPostData] = useState(null); // The original post data
+  const [originalTitle, setOriginalTitle] = useState(""); // For slug re-generation check
+
   const [values, setValues] = useState({
+    _id: postId,
     title: "",
     slug: "",
     excerpt: "",
@@ -243,7 +130,6 @@ export default function AddPostForm({ onPostAdded, onCancel }) {
     comments_enabled: true,
   });
 
-  // State for image handling
   const [selectedFile, setSelectedFile] = useState(null);
   const [imageUploadLoading, setImageUploadLoading] = useState(false);
   const [imageError, setImageError] = useState("");
@@ -254,30 +140,77 @@ export default function AddPostForm({ onPostAdded, onCancel }) {
   const [loading, setLoading] = useState(false); // Main form submission loading
   const [error, setError] = useState(""); // Main form error
 
+  // --- Data Loading and Initialization ---
   useEffect(() => {
     const loadData = async () => {
+      setIsInitialLoading(true);
       try {
-        const [authorsData, subcategoriesData] = await Promise.all([
+        const [postRes, authorsRes, subcategoriesRes] = await Promise.all([
+          fetchPost(postId),
           fetchAuthors(),
           fetchSubcategories(),
         ]);
-        setAuthors(authorsData || []);
-        setAllSubCats(subcategoriesData || []);
+
+        const post = postRes.data;
+
+        // Flatten tags array to comma-separated string for input field
+        const formattedTags = Array.isArray(post.tags) ? post.tags.join(", ") : "";
+
+        // Extract ID from populated author/subcategories
+        const authorId = post.author_id ? (post.author_id._id || post.author_id) : "";
+        const subcategoryIds = Array.isArray(post.subcategory_ids)
+            ? post.subcategory_ids.map(id => id._id || id)
+            : [];
+
+
+        const initialValues = {
+            _id: post._id,
+            title: post.title || "",
+            slug: post.slug || "",
+            excerpt: post.excerpt || "",
+            content: post.content || "",
+            author_id: authorId,
+            subcategory_ids: subcategoryIds,
+            tags: formattedTags,
+            status: post.status || "draft",
+            featured_image: post.featured_image || "",
+            comments_enabled: post.comments_enabled ?? true,
+        };
+
+        setValues(initialValues);
+        setOriginalTitle(post.title); // Store original title for slug logic
+        setInitialPostData(post); 
+        
+        setAuthors(authorsRes.data || authorsRes || []);
+        setAllSubCats(subcategoriesRes.data || subcategoriesRes || []);
+
       } catch (err) {
         console.error("Error loading data:", err);
-        setError("Failed to load form data");
+        setError(err.message || "Failed to load post and form data");
+      } finally {
+        setIsInitialLoading(false);
       }
     };
     loadData();
-  }, []);
+  }, [postId]);
 
+  // --- Slug Generation Logic ---
   useEffect(() => {
-    if (values.title) {
+    // Determine if the slug was manually changed from the slug generated by the original title
+    const isSlugManuallyEdited = values.slug !== slugify(originalTitle);
+    
+    // Only auto-generate slug if: 
+    // 1. Title has content
+    // 2. The slug has NOT been manually edited (i.e., it matches the slug generated from the *original* title)
+    // 3. The title has changed from the original title
+    if (values.title && !isSlugManuallyEdited && values.title !== originalTitle) {
       setValues((s) => ({ ...s, slug: slugify(values.title) }));
     }
-  }, [values.title]);
+  }, [values.title, originalTitle, values.slug]);
+
 
   const handleChange = (e) => {
+    // RichTextEditor onChange passes a string directly
     if (typeof e === "string") {
       setValues((s) => ({ ...s, content: e }));
       setError("");
@@ -287,17 +220,30 @@ export default function AddPostForm({ onPostAdded, onCancel }) {
     const { name, value, type, checked } = e.target;
     setError("");
 
-    setValues((s) => ({ ...s, [name]: type === "checkbox" ? checked : value }));
+    // Use slugify for the slug input field to normalize characters immediately
+    if (name === 'slug') {
+        const newSlug = slugify(value);
+        setValues((s) => ({ ...s, [name]: newSlug }));
+    } else {
+        setValues((s) => ({ ...s, [name]: type === "checkbox" ? checked : value }));
+    }
   };
 
-  // New handler for file input
+  // Handler to manually regenerate slug from current title
+  const handleRegenerateSlug = () => {
+    if (values.title) {
+        setValues((s) => ({ ...s, slug: slugify(values.title) }));
+    }
+  };
+
+
+  // Handler for file input
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
     if (file) {
       setSelectedFile(file);
       setImageError("");
-      // Clear current image URL in state if a new file is selected
-      setValues((s) => ({ ...s, featured_image: "" }));
+      setValues((s) => ({ ...s, featured_image: "" })); // Clear URL if new file selected
     } else {
       setSelectedFile(null);
     }
@@ -312,28 +258,28 @@ export default function AddPostForm({ onPostAdded, onCancel }) {
       const formData = new FormData();
       formData.append("file", file);
 
-      // Call the new API route
       const res = await fetch("/api/admin/posts/imageUpload", {
         method: "POST",
-        headers: API_HEADERS, // Pass API key for server auth
+        headers: API_HEADERS,
         body: formData,
       });
 
       const json = await res.json();
       if (!res.ok) throw new Error(json.message || "Image upload failed");
 
-      // Success: return the secured URL
       return json.imageUrl;
     } catch (err) {
       console.error("Image upload error:", err);
       setImageError(err.message);
-      setValues((s) => ({ ...s, featured_image: "" })); // Clear URL on error
+      // Reset to original image URL on error if available
+      setValues((s) => ({ ...s, featured_image: initialPostData?.featured_image || "" }));
       return null;
     } finally {
       setImageUploadLoading(false);
     }
-  }, []);
+  }, [initialPostData]); 
 
+  // Function to upload inline images for the RichTextEditor
   const uploadInlineImage = useCallback(async (file) => {
     try {
       const formData = new FormData();
@@ -349,7 +295,6 @@ export default function AddPostForm({ onPostAdded, onCancel }) {
       if (!res.ok)
         throw new Error(json.message || "Inline image upload failed");
 
-      // Success: return the secured URL
       return json.imageUrl;
     } catch (err) {
       console.error("Inline image upload error:", err);
@@ -389,11 +334,16 @@ export default function AddPostForm({ onPostAdded, onCancel }) {
       setLoading(false);
       return;
     }
+    
+    if (values.slug.trim() === '') {
+        setError("Slug cannot be empty.");
+        setLoading(false);
+        return;
+    }
 
     let finalImageUrl = values.featured_image;
 
     if (selectedFile) {
-      // Stop if image upload is already in progress, though the button is disabled, this is a safety check
       if (imageUploadLoading) {
         setLoading(false);
         return;
@@ -408,19 +358,23 @@ export default function AddPostForm({ onPostAdded, onCancel }) {
       finalImageUrl = url;
     }
 
-    const payload = {
-      ...values,
-      featured_image: finalImageUrl, // Use the final confirmed URL
-      author_id: values.author_id === "" ? null : values.author_id,
-      tags: values.tags
+    const formattedTagsArray = values.tags
         .split(",")
         .map((t) => t.trim())
-        .filter(Boolean),
+        .filter(Boolean);
+
+
+    const payload = {
+      ...values,
+      featured_image: finalImageUrl,
+      author_id: values.author_id === "" ? null : values.author_id,
+      tags: formattedTagsArray,
+      _id: postId, // Ensure the ID is passed for the update query
     };
 
     try {
       const res = await fetch("/api/admin/posts", {
-        method: "POST",
+        method: "PUT", // Use PUT for updating
         headers: {
           "Content-Type": "application/json",
           ...API_HEADERS,
@@ -429,19 +383,18 @@ export default function AddPostForm({ onPostAdded, onCancel }) {
       });
 
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "Server error");
+      if (!res.ok) throw new Error(json.error || "Server error during update");
 
-      onPostAdded(json.data);
+      onPostUpdated(json.data); // Call the update handler
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
-      // Clear file selection after successful submission
-      if (finalImageUrl) setSelectedFile(null);
+      if (selectedFile) setSelectedFile(null);
     }
   };
 
-  // ADDED: Definition for Author Select options (Missing in original code)
+  // --- Select Option Definitions ---
   const authorOptions = authors.map((author) => ({
     label: author.name,
     value: author._id,
@@ -449,7 +402,6 @@ export default function AddPostForm({ onPostAdded, onCancel }) {
   const currentAuthorValue =
     authorOptions.find((opt) => opt.value === values.author_id) || null;
 
-  // ADDED: Definition for Status Select options (Missing in original code)
   const statusOptions = [
     { label: "Draft", value: "draft" },
     { label: "Published", value: "published" },
@@ -460,19 +412,28 @@ export default function AddPostForm({ onPostAdded, onCancel }) {
 
   const subcategoryOptions = allSubCats.map((subCat) => ({
     label: subCat.name,
-    value: subCat._id, // Mongoose ID
+    value: subCat._id,
   }));
 
   const currentSubcatValues = subcategoryOptions.filter((opt) =>
     values.subcategory_ids.includes(opt.value)
   );
+  // --- End Select Option Definitions ---
 
-  // URL for image preview (either uploaded URL or local file preview)
   const imagePreviewUrl = values.featured_image
     ? values.featured_image
     : selectedFile
     ? URL.createObjectURL(selectedFile)
     : null;
+
+    if (isInitialLoading) {
+        return (
+            <div className="flex justify-center items-center h-40 text-red-600">
+                <Loader2 className="w-6 h-6 mr-2 animate-spin" />
+                Loading post data...
+            </div>
+        );
+    }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -525,7 +486,7 @@ export default function AddPostForm({ onPostAdded, onCancel }) {
           type="file"
           onChange={handleFileChange}
           accept="image/*"
-          disabled={imageUploadLoading || !!values.featured_image}
+          disabled={imageUploadLoading || (!!values.featured_image && !selectedFile)}
           className="w-full text-sm text-gray-500
                   file:mr-4 file:py-2 file:px-4
                   file:rounded-md file:border-0
@@ -566,13 +527,24 @@ export default function AddPostForm({ onPostAdded, onCancel }) {
 
       <div>
         <label className="block text-sm font-medium mb-1">Slug *</label>
-        <input
-          name="slug"
-          value={values.slug}
-          onChange={handleChange}
-          required
-          className="w-full border border-gray-300 rounded-md px-3 py-2 bg-gray-50"
-        />
+        <div className="flex gap-2">
+            <input
+                name="slug"
+                value={values.slug}
+                onChange={handleChange}
+                required
+                className="w-full border border-gray-300 rounded-md px-3 py-2 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-red-500"
+            />
+            <button
+                type="button"
+                onClick={handleRegenerateSlug}
+                title="Regenerate slug from current title"
+                className="px-3 py-2 text-sm border rounded-md bg-gray-100 hover:bg-gray-200 transition flex items-center"
+            >
+                <RotateCw className="w-4 h-4" />
+            </button>
+        </div>
+        <p className="text-xs text-gray-500 mt-1">Slug is auto-generated but can be manually edited or regenerated.</p>
       </div>
 
       <div>
@@ -658,9 +630,9 @@ export default function AddPostForm({ onPostAdded, onCancel }) {
           type="checkbox"
           checked={values.comments_enabled}
           onChange={handleChange}
-          className="h-4 w-4"
+          className="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded"
         />
-        <label htmlFor="comments" className="text-sm">
+        <label htmlFor="comments" className="text-sm select-none">
           Enable comments
         </label>
       </div>
@@ -670,7 +642,7 @@ export default function AddPostForm({ onPostAdded, onCancel }) {
           type="button"
           onClick={onCancel}
           disabled={loading || imageUploadLoading}
-          className="px-4 py-2 text-sm border rounded-md hover:bg-gray-100"
+          className="px-4 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-100 transition"
         >
           <X className="inline w-4 h-4 mr-1" /> Cancel
         </button>
@@ -678,17 +650,18 @@ export default function AddPostForm({ onPostAdded, onCancel }) {
         <button
           type="submit"
           disabled={loading || imageUploadLoading}
-          className="px-4 py-2 text-sm bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-60"
+          // Changed color to blue to visually differentiate from the red 'Add Post' button
+          className="px-4 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-60 transition" 
         >
           {loading ? (
             <>
               <Loader2 className="inline w-4 h-4 mr-1 animate-spin" />
-              Saving…
+              Updating…
             </>
           ) : (
             <>
               <Save className="inline w-4 h-4 mr-1" />
-              Save Post
+              Update Post
             </>
           )}
         </button>

@@ -95,3 +95,48 @@ export async function POST(req) {
         return NextResponse.json({ message: 'Error creating category: Internal Server Error' }, { status: 500 });
     }
 }
+
+// NEW: DELETE handler to remove a category or subcategory
+export async function DELETE(req) {
+    try {
+        await dbConnect(); 
+    } catch (e) {
+        console.error("Database connection failed in DELETE /categories:", e);
+        return NextResponse.json({ message: 'Database connection failed' }, { status: 500 });
+    }
+
+    const apikey = req.headers.get("x-api-key");
+    if (!apikey || apikey !== SERVER_API_KEY) {
+        console.error("Auth failed in DELETE");
+        return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
+    }
+    
+    let data;
+    try {
+        // Expecting { id: 'category_or_subcategory_id' } in the body
+        data = await req.json();
+        const id = data?.id;
+
+        if (!id) {
+            return NextResponse.json({ message: 'Category ID is required for deletion.' }, { status: 400 });
+        }
+
+        // Use findByIdAndDelete for a direct and atomic removal
+        const deletedCategory = await Category.findByIdAndDelete(id);
+
+        if (!deletedCategory) {
+            return NextResponse.json({ message: 'Category not found or already deleted.' }, { status: 404 });
+        }
+
+        // Success: return a message and the deleted object
+        return NextResponse.json({ 
+            message: 'Category deleted successfully.', 
+            deletedId: id,
+            deletedCategory
+        });
+
+    } catch (error) {
+        console.error("Category deletion error:", error);
+        return NextResponse.json({ message: 'Error deleting category: Internal Server Error' }, { status: 500 });
+    }
+}

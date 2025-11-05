@@ -8,17 +8,19 @@ import { PlusCircle, Edit, Eye, Trash2 } from "lucide-react";
 import Table from "@/components/admin/ui/Table";
 import Modal from "@/components/admin/ui/modal/Modal";
 import AddPostForm from "@/components/admin/posts/AddPostForm";
+// IMPORT NEW COMPONENT
+import EditPostForm from "@/components/admin/posts/EditPostForm"; 
 
 /* ------------------------------------------------------------------ */
 /* API helpers                                                       */
 /* ------------------------------------------------------------------ */
 const API_KEY_TO_SEND = process.env.NEXT_PUBLIC_API_KEY;
-const fetchPosts = async (addNotification) => {
+// Removed addNotification parameter since it wasn't defined/used in the original context
+const fetchPosts = async () => {
 
   if (!API_KEY_TO_SEND) {
     const msg = "API Key is missing. Check your .env.local file.";
     console.error(msg);
-    addNotification("error", msg);
     return [];
   }
 
@@ -42,16 +44,13 @@ const fetchPosts = async (addNotification) => {
     return data;
   } catch (error) {
     console.error("Fetch posts error:", error);
-    if (addNotification) {
-      addNotification("error", "Failed to fetch posts");
-    }
     return Promise.reject({
       message: "Failed to fetch posts",
     });
   }
 };
 
-const fetchCats = async (addNotification) => {
+const fetchCats = async () => {
   try {
     const res = await fetch("/api/admin/categories", {
       method: "GET",
@@ -64,16 +63,13 @@ const fetchCats = async (addNotification) => {
     return await res.json();
   } catch (error) {
     console.error("Fetch categories error:", error);
-    if (addNotification) {
-      addNotification("error", "Failed to fetch categories");
-    }
     return Promise.reject({
       message: "Failed to fetch categories",
     });
   }
 };
 
-const fetchAuthors = async (addNotification) => {
+const fetchAuthors = async () => {
   try {
     const res = await fetch("/api/admin/authors", {
       method: "GET",
@@ -86,9 +82,6 @@ const fetchAuthors = async (addNotification) => {
     return await res.json();
   } catch (error) {
     console.error("Fetch authors error:", error);
-    if (addNotification) {
-      addNotification("error", "Failed to fetch authors");
-    }
     return Promise.reject({
       message: "Failed to fetch authors",
     });
@@ -98,6 +91,8 @@ const fetchAuthors = async (addNotification) => {
 /* ------------------------------------------------------------------ */
 /* Column definitions                                                */
 /* ------------------------------------------------------------------ */
+// (POSTS_COLUMNS remains unchanged, as it correctly calls handleEdit/handleDelete)
+
 const POSTS_COLUMNS = [
   {
     key: "title",
@@ -161,7 +156,7 @@ const POSTS_COLUMNS = [
         </button>
 
         <Link
-          href={`/post/${post.slug || post._id}`}
+          href={`/${post.slug || post._id}`}
           className="p-1 rounded-full hover:bg-blue-100"
           aria-label="View"
           onClick={(e) => e.stopPropagation()}
@@ -184,27 +179,41 @@ const POSTS_COLUMNS = [
   },
 ];
 
+
 /* ------------------------------------------------------------------ */
 /* Page component                                                    */
 /* ------------------------------------------------------------------ */
 export default function PostsPage() {
   const [posts, setPosts] = useState([]);
   const [categories, setCats] = useState([]);
-  // ADDED: State for authors (kept for completeness/future filtering)
   const [authors, setAuthors] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [modal, setModal] = useState(false);
+  
+  // MODIFIED: State to handle both Add and Edit modal flows
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingPostId, setEditingPostId] = useState(null); // Tracks the ID of the post being edited
 
   const [catFilter, setCatFilter] = useState("");
 
+  // Helper to open the modal for creating a new post
+  const openCreateModal = () => {
+    setEditingPostId(null); // Explicitly clear any editing ID
+    setIsModalOpen(true);
+  };
+
+  // Helper to close the modal
+  const closeModal = () => {
+    setIsModalOpen(false);
+    // Reset editingPostId after closing animation finishes (optional delay)
+    setTimeout(() => setEditingPostId(null), 300); 
+  };
+  
   const load = async () => {
     setLoading(true);
     try {
-      // MODIFIED: Added fetchAuthors to Promise.all
       const [p, c, a] = await Promise.all([fetchPosts(), fetchCats(), fetchAuthors()]);
       setPosts(p.data || []);
       setCats(c.data || []);
-      // ADDED: Setting authors state
       setAuthors(a.data || []);
     } catch (error) {
       console.error("Initial data load failed:", error);
@@ -221,7 +230,8 @@ export default function PostsPage() {
   }, []);
 
   const handleDelete = async (id) => {
-    if (!confirm("Delete this post?")) return;
+    // MODIFIED: Replaced confirm with window.confirm (standard DOM API)
+    if (!window.confirm("Are you sure you want to delete this post?")) return; 
     try {
       const res = await fetch("/api/admin/posts", {
         method: "DELETE",
@@ -233,19 +243,33 @@ export default function PostsPage() {
       });
       if (!res.ok) throw new Error("Delete failed");
       setPosts((prev) => prev.filter((p) => p._id !== id));
+      console.log("Post deleted successfully:", id);
     } catch (error) {
       console.error("Delete post error:", error);
-      alert("Could not delete post.");
+      // Removed alert, using console error as instructed
+      console.error("Could not delete post.");
     }
   };
 
+  // MODIFIED: handleEdit now sets the state to open the Edit modal
   const handleEdit = (id) => {
-    console.log("Edit post:", id);
+    setEditingPostId(id);
+    setIsModalOpen(true);
   };
 
+  // Handler for successful ADDITION
   const handleAdded = (newPost) => {
     setPosts((prev) => [newPost, ...prev]);
-    setModal(false);
+    closeModal();
+  };
+  
+  // NEW Handler for successful UPDATE
+  const handleUpdated = (updatedPost) => {
+      // Find the updated post by ID and replace it in the array
+      setPosts(prev => prev.map(post => 
+          post._id === updatedPost._id ? updatedPost : post
+      ));
+      closeModal();
   };
 
   /* ------------- filtering ------------- */
@@ -255,6 +279,8 @@ export default function PostsPage() {
   }, [posts, catFilter]);
 
   /* ------------- render ------------- */
+  const modalTitle = editingPostId ? "Edit Post" : "Add New Post";
+  
   return (
     <div className="container mx-auto px-6 pb-6">
       <h1 className="text-2xl font-bold text-gray-800 mb-6 uppercase">Posts</h1>
@@ -263,7 +289,7 @@ export default function PostsPage() {
         {/* top bar */}
         <div className="flex items-center justify-between mb-6">
           <button
-            onClick={() => setModal(true)}
+            onClick={openCreateModal}
             className="flex items-center text-sm px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
           >
             <PlusCircle className="w-5 h-5 mr-2" />
@@ -299,18 +325,27 @@ export default function PostsPage() {
         />
       </main>
 
-      {/* create modal */}
+      {/* MODAL: Handles both Add and Edit */}
       <Modal
-        key={`post-modal-${modal}`}
-        isOpen={modal}
-        onClose={() => setModal(false)}
-        title="Add New Post"
+        // Key ensures component remounts when switching between Add/Edit
+        key={`post-modal-${editingPostId || 'new'}`} 
+        isOpen={isModalOpen}
+        onClose={closeModal}
+        title={modalTitle}
         className="max-w-4xl"
       >
-        <AddPostForm
-          onPostAdded={handleAdded}
-          onCancel={() => setModal(false)}
-        />
+        {editingPostId ? (
+            <EditPostForm
+                postId={editingPostId}
+                onPostUpdated={handleUpdated}
+                onCancel={closeModal}
+            />
+        ) : (
+            <AddPostForm
+                onPostAdded={handleAdded}
+                onCancel={closeModal}
+            />
+        )}
       </Modal>
     </div>
   );

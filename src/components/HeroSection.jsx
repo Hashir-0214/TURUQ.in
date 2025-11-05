@@ -14,7 +14,7 @@ const featuredSlides = [
         titleMalayalam: 'മാംഗ: ജാപ്പനീസ് കലാമണ്ഡലത്തിൽ ഇസ്ലാമിന്റെ ഇടം',
         slug: 'manga-islam-in-japanese-art',
         descriptionMalayalam: 'നാം നേരിടുന്ന എപിസ്റ്റമിക് കോളനിവൽക്കരണത്തിൻ്റെ അനന്തരഫലമെന്നോണം തന്നെ അക്കാദമിക ഗവേഷണതലങ്ങളിൽ സംഭവിക്കുന്നു. നാം നേരിടുന്ന എപിസ്റ്റമിക് കോളനിവൽക്കരണത്തിൻ്റെ',
-        imageSrc: '/images/hero_featured.jpg',
+        imageSrc: 'https://res.cloudinary.com/dgoz15sps/image/upload/v1762102011/turuq/fzxluar5cn16be4a6afd.webp',
         categories: [
             { name: 'UNITED', link: '/category/united' },
             { name: 'ARCHITECTURE', link: '/category/architecture' },
@@ -27,7 +27,7 @@ const featuredSlides = [
         article_id: null, 
         custom_titleMalayalam: 'ഇരുളടഞ്ഞ ഇടനാഴികളിലെ വിപ്ലവകാരി',
         custom_descriptionMalayalam: 'ഇരുളടഞ്ഞ ചരിത്രത്തിൻ്റെ ഇടനാഴികളിൽ ഒരു വിപ്ലവകാരിയുടെ ഉയിർത്തെഴുന്നേറ്റ കഥയാണിത്. (കസ്റ്റം ബാനർ ടെക്സ്റ്റ്)',
-        image_link: '/images/hero_featured.jpg',
+        image_link: 'https://res.cloudinary.com/dgoz15sps/image/upload/v1762102011/turuq/fzxluar5cn16be4a6afd.webp',
         redirection_link: '/article/malcom-x-space-travel',
         categories: [{ name: 'PROMO', link: '/promo' }],
         author: 'വെബ്സിൻ എഡിറ്റർ',
@@ -93,7 +93,7 @@ export default function HeroSection() {
 
     return (
         <section className="mb-[100px] w-full">
-            <div className="mx-auto flex w-[83%] max-w-[1250px] h-[510px] h-auto flex-col lg:flex-row items-center justify-between gap-10 overflow-hidden rounded-2xl border border-black p-[40px]">
+            <div className="mx-auto flex w-[83%] max-w-[1250px] h-[510px] flex-col lg:flex-row items-center justify-between gap-10 overflow-hidden rounded-2xl border border-black p-[40px]">
 
                 {/* Left Content Area (Text and Controls) */}
                 {/* ADDED: transition and dynamic opacity class */}

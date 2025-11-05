@@ -1,4 +1,4 @@
-// app/page.js
+// arc/app/page.js
 
 import { getHomeArticleData } from '@/lib/data';
 
@@ -21,7 +21,7 @@ export default async function Home() {
   }
 
   return (
-    <main className="mt-[170px] bg-[#ffedd9] w-full">
+    <main className="mt-[20px] bg-[#ffedd9] w-full">
       {/* Hero Section */}
       <div>
         <HeroSection />

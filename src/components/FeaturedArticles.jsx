@@ -1,6 +1,7 @@
 // src/components/FeaturedArticles.jsx
 'use client'; 
 
+import Image from "next/image";
 import Tag from "./ui/tag";
 
 export default function FeaturedArticles({ articles }) {
@@ -24,9 +25,12 @@ export default function FeaturedArticles({ articles }) {
         >
           {/* Image - Use article.imageSrc directly */}
           <div className="article-image mb-4 h-[250px] w-full overflow-hidden rounded-xl">
-              <img
+              <Image
                   src={article.imageSrc} // DYNAMIC
                   alt={article.titleMalayalam}
+                  width={400}
+                  height={250}
+                  sizes="(max-width: 768px) 100vw, 25vw"
                   className="h-full w-full object-cover transition-transform hover:scale-105"
                   style={{ width: '100%', height: '250px', objectFit: 'cover' }}
                   onError={(e) => { e.currentTarget.src = 'https://placehold.co/400x250/ccc/333?text=Image+Missing'; }}

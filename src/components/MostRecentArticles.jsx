@@ -1,6 +1,7 @@
 // src/components/MostRecentArticles.jsx
 'use client';
 
+import Image from "next/image";
 import Tag from "./ui/tag";
 
 export default function MostRecentArticles({ articles }) {
@@ -25,9 +26,12 @@ export default function MostRecentArticles({ articles }) {
           
           {/* Image - Use mainArticle.imageSrc directly */}
           <div className="side-article-image w-full rounded-2xl overflow-hidden aspect-video">
-            <img
+            <Image
               src={mainArticle.imageSrc}
               alt={mainArticle.titleMalayalam}
+              width={400}
+              height={225}
+              sizes="(max-width: 768px) 100vw, 25vw"
               className="h-full w-full object-cover transition-transform"
               style={{ width: '100%', height: 'auto', aspectRatio: '16/9' }}
               onError={(e) => { e.currentTarget.src = 'https://placehold.co/1200x675/ccc/333?text=Image+Load+Error'; }}
@@ -46,7 +50,7 @@ export default function MostRecentArticles({ articles }) {
             </div>
 
             {/* Title - Use mainArticle.slug directly */}
-            <a href={`/article/${mainArticle.slug}`}> 
+            <a href={`/${mainArticle.slug}`}> 
               <h4 className="side-article-title local-font-rachana text-[40px] md:text-[50px] font-bold leading-tight lg:leading-[46px] text-[#a82a2a] mt-2 hover:text-red-700 transition-colors">
                 {mainArticle.titleMalayalam} 
               </h4>

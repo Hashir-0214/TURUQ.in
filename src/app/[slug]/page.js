@@ -3,16 +3,15 @@
 import Tag from "@/components/ui/tag";
 import { getArticle } from "@/lib/mongodb";
 import { VscLiveShare } from "react-icons/vsc";
-import { notFound } from 'next/navigation';
+import { notFound } from "next/navigation";
 
 /* ----------  STATIC META  ---------- */
 export async function generateMetadata({ params }) {
-  // Await params before accessing properties (Next.js 15 requirement)
   const resolvedParams = await params;
   const slug = resolvedParams.slug;
   const article = await getArticle(slug);
 
-  if (!article) return { title: 'Not found' };
+  if (!article) return { title: "Not found" };
   return {
     title: `${article.title} — TURUQ`,
     description: article.excerpt,
@@ -21,25 +20,24 @@ export async function generateMetadata({ params }) {
 
 /* ----------  PAGE  ---------- */
 export default async function ArticlePage({ params }) {
-  // Await params before accessing properties (Next.js 15 requirement)
   const resolvedParams = await params;
   const slug = resolvedParams.slug;
   const article = await getArticle(slug);
 
   if (!article) notFound();
 
-  // Assuming the author property is populated
   const author = article.author_id || {};
 
   /* ----------  HELPERS  ---------- */
-  // Helper to format the date
   const formatDate = (dateString) => {
-    if (!dateString) return 'N/A';
-    return new Date(dateString).toLocaleDateString('en-US', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric',
-    }).toUpperCase();
+    if (!dateString) return "N/A";
+    return new Date(dateString)
+      .toLocaleDateString("en-US", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      })
+      .toUpperCase();
   };
 
   /* ----------  JSX  ---------- */
@@ -58,18 +56,25 @@ export default async function ArticlePage({ params }) {
         {/* RIGHT: AUTHOR + SHARE */}
         <aside className="flex flex-col flex-shrink-0 items-center gap-6 w-full lg:w-[300px]">
           <div className="w-full border-2 border-black rounded-3xl p-6 text-center bg-none shadow-lg hover:shadow-xl transition-shadow">
-            <div className="text-xs font-bold tracking-wider mb-4 text-gray-600">AUTHOR</div>
+            <div className="text-xs font-bold tracking-wider mb-4 text-gray-600">
+              AUTHOR
+            </div>
 
             <div className="relative inline-block mb-4">
               <img
-                src={author.avatar || "https://cdn.builder.io/api/v1/image/assets/TEMP/9bb4988949e5939edbdc39fb1f4c712bf3b7921a?width=598"}
+                src={
+                  author.avatar ||
+                  "https://cdn.builder.io/api/v1/image/assets/TEMP/9bb4988949e5939edbdc39fb1f4c712bf3b7921a?width=598"
+                }
                 alt={author.name || "Author"}
                 className="w-28 h-28 rounded-full object-cover border-4 border-black shadow-md"
               />
               <div className="absolute inset-0 rounded-full bg-gradient-to-br from-transparent to-black/10"></div>
             </div>
 
-            <h3 className="font-bold text-lg mb-2">{author.name || "Unknown Author"}</h3>
+            <h3 className="font-bold text-lg mb-2">
+              {author.name || "Unknown Author"}
+            </h3>
 
             <p className="text-sm text-gray-600 leading-relaxed mb-5 px-2">
               {author.biography || "No biography available."}
@@ -89,13 +94,24 @@ export default async function ArticlePage({ params }) {
         <article>
           <div className="flex items-center justify-between mb-4">
             <div className="flex gap-2">
-              {article.tags && article.tags.slice(0, 3).map((tag, index) => (
-                <Tag linkClassName={`text-[12px] px-2`} link={tag} key={index}>{tag}</Tag>
-              ))}
-              {(!article.tags || article.tags.length === 0) && <Tag>UNCATEGORIZED</Tag>}
+              {article.tags &&
+                article.tags.slice(0, 3).map((tag, index) => (
+                  <Tag
+                    linkClassName={`text-[12px] px-2`}
+                    link={`/tag/${encodeURIComponent(tag)}`}
+                    key={index}
+                  >
+                    {tag}
+                  </Tag>
+                ))}
+              {(!article.tags || article.tags.length === 0) && (
+                <Tag link="/tag/uncategorized">UNCATEGORIZED</Tag>
+              )}
             </div>
             <div className="flex gap-4 text-sm text-gray-700">
-              <span>{formatDate(article.published_at || article.created_at)}</span>
+              <span>
+                {formatDate(article.published_at || article.created_at)}
+              </span>
               <span>6 Min Read</span>
             </div>
           </div>
@@ -134,12 +150,14 @@ export default async function ArticlePage({ params }) {
             <div>
               <div className="flex items-center gap-3 mb-2">
                 <h4 className="font-semibold">Fadhil Mon</h4>
-                <span className="text-sm text-gray-600">22 MAY 2025 12:50:03 PM</span>
+                <span className="text-sm text-gray-600">
+                  22 MAY 2025 12:50:03 PM
+                </span>
               </div>
               <p className="font-serif text-xl leading-relaxed">
                 അവൾ രൂചിക്കുന്നത് കമാലിന് സ്മാരകങ്ങളായി മാറുന്നു, അവളുപയോഗിച്ചവ
-                സ്വനീറ്റും. എന്നിട്ടയാൽ സ്മാരകങ്ങൾ കൊണ്ടൊരു സ്മാരകം പണിത്. താജ്മ
-                ഹലിനെ പോലൊത്ത ഒന്നു.
+                സ്വന്തീറ്റും. എന്നിട്ടായാൽ സ്മാരകങ്ങൾ കൊണ്ടൊരു സ്മാരകം പണിത്.
+                താജ്മ ഹലിനെ പോലൊത്ത ഒന്ന്.
               </p>
             </div>
           </div>

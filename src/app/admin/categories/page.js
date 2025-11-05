@@ -1,110 +1,40 @@
 // app/admin/categories/page.js
-'use client';
+"use client";
 
-import { useEffect, useState, useMemo, useCallback } from 'react';
-import { Edit, LoaderCircle, Trash2, PlusCircle } from 'lucide-react';
-// Assuming '@/components/admin/ui/table' and '@/components/ui/notification/NotificationProvider' exist
-import Table from '@/components/admin/ui/Table';
-import { useNotification } from '@/components/ui/notification/NotificationProvider';
-import Modal from '@/components/admin/ui/modal/Modal';
-import AddCategoryForm from '@/components/admin/categories/AddCategoryForm'; // New form component
-import AddSubCategoryForm from '@/components/admin/categories/AddSubCategoryForm'; // New form component
-
-
-// Define table columns outside the component to prevent re-creation on every render
-const columns = [
-  {
-    key: 'name',
-    header: 'Name',
-    sortable: true,
-  },
-  {
-    key: 'slug',
-    header: 'Slug',
-    sortable: true,
-  },
-  {
-    key: 'description',
-    header: 'Description',
-    sortable: false,
-    className: 'text-gray-600 font-light text-sm',
-  },
-  {
-    key: 'created_at_display', // A new key for display purposes
-    header: 'Created At',
-    sortable: true,
-    // FIX 1: Use the dedicated created_at field first, then fallback to _id
-    render: (row) => { // Render receives the entire row now
-      // 1. Check for the dedicated created_at field from Mongoose timestamps
-      if (row?.created_at) {
-        // Use dedicated created_at field (more reliable than _id parsing)
-        return new Date(row.created_at).toLocaleDateString();
-      }
-      // 2. Fallback: Parse the date from MongoDB _id (if created_at is missing)
-      if (row?._id) {
-        return new Date(parseInt(row._id.substring(0, 8), 16) * 1000).toLocaleDateString();
-      }
-      // 3. Fail: return N/A
-      return 'N/A';
-    },
-  },
-  {
-    key: 'actions',
-    header: 'Actions',
-    render: (row, { handleEdit, handleDelete }) => ( // Render receives the entire row and handlers
-      <div className="flex items-center space-x-2">
-        <button
-          onClick={(e) => {
-            e.stopPropagation(); // Prevent row click
-            handleEdit(row._id);
-          }}
-          className="p-1 rounded-full hover:bg-yellow-100 transition-colors"
-          aria-label="Edit"
-        >
-          <Edit className="w-4 h-4 text-yellow-600" />
-        </button>
-        <button
-          onClick={(e) => {
-            e.stopPropagation(); // Prevent row click
-            handleDelete(row._id);
-          }}
-          className="p-1 rounded-full hover:bg-red-100 transition-colors"
-          aria-label="Delete"
-        >
-          <Trash2 className="w-4 h-4 text-red-600" />
-        </button>
-      </div>
-    ),
-  },
-];
-
+import { useEffect, useState, useMemo, useCallback } from "react";
+import { Edit, LoaderCircle, Trash2, PlusCircle } from "lucide-react";
+import Table from "@/components/admin/ui/Table";
+import { useNotification } from "@/components/ui/notification/NotificationProvider";
+import Modal from "@/components/admin/ui/modal/Modal";
+import AddCategoryForm from "@/components/admin/categories/AddCategoryForm"; // New form component
+import AddSubCategoryForm from "@/components/admin/categories/AddSubCategoryForm"; // New form component
 
 const fetchCategories = async () => {
-  const res = await fetch('/api/admin/categories', {
-    method: 'GET',
+  const res = await fetch("/api/admin/categories", {
+    method: "GET",
     headers: {
-      'x-api-key': process.env.NEXT_PUBLIC_API_KEY,
-      'Content-Type': 'application/json',
-    }
+      "x-api-key": process.env.NEXT_PUBLIC_API_KEY,
+      "Content-Type": "application/json",
+    },
   });
-  if (!res.ok) throw new Error('Failed to fetch categories');
+  if (!res.ok) throw new Error("Failed to fetch categories");
   const data = await res.json();
   return data;
-}
+};
 
 const fetchSubCategories = async () => {
-  const res = await fetch('/api/admin/subcategories', {
-    method: 'GET',
+  const res = await fetch("/api/admin/subcategories", {
+    method: "GET",
     headers: {
-      'x-api-key': process.env.NEXT_PUBLIC_API_KEY,
-      'Content-Type': 'application/json',
-    }
+      "x-api-key": process.env.NEXT_PUBLIC_API_KEY,
+      "Content-Type": "application/json",
+    },
   });
-  if (!res.ok) throw new Error('Failed to fetch subcategories');
+  if (!res.ok) throw new Error("Failed to fetch subcategories");
   const data = await res.json();
   // console.log('Subcategories:', data);
   return data;
-}
+};
 
 export default function Categories() {
   const { addNotification } = useNotification();
@@ -114,8 +44,149 @@ export default function Categories() {
   const [mainTab, setMainTab] = useState(true); // true for Categories, false for Sub Categories
 
   const [isAddCategoryModalOpen, setIsAddCategoryModalOpen] = useState(false);
-  const [isAddSubCategoryModalOpen, setIsAddSubCategoryModalOpen] = useState(false);
+  const [isAddSubCategoryModalOpen, setIsAddSubCategoryModalOpen] =
+    useState(false);
 
+  /* ------------- Handlers ------------- */
+  const handleEdit = useCallback(
+    (id) => {
+      if (mainTab) {
+        // Editing a main category
+        console.log(`Edit category:`, id);
+      } else {
+        // Editing a sub-category
+        console.log(`Edit sub-category:`, id);
+      }
+
+      addNotification(
+        "info",
+        `Editing feature for ID ${id} not yet implemented.`
+      );
+    },
+    [mainTab, addNotification]
+  );
+
+  const handleDelete = useCallback(
+    async (id) => {
+      const itemType = mainTab ? "Category" : "Subcategory";
+
+      console.log(`Attempting to delete ${itemType}:`, id);
+
+      try {
+        const res = await fetch("/api/admin/categories", {
+          method: "DELETE",
+          headers: {
+            "x-api-key": process.env.NEXT_PUBLIC_API_KEY,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ id }), // Send the ID in the body for the DELETE request
+        });
+
+        const result = await res.json();
+
+        if (!res.ok) {
+          const message = result.message || `Failed to delete ${itemType}.`;
+          addNotification("error", message);
+          console.error("Delete API Error:", result);
+          return;
+        }
+
+        // Success: Update the state to remove the deleted item
+        if (mainTab) {
+          setCategoryData((prev) => prev.filter((item) => item._id !== id));
+        } else {
+          setSubCategoryData((prev) => prev.filter((item) => item._id !== id));
+        }
+
+        addNotification("success", `${itemType} deleted successfully!`);
+      } catch (error) {
+        console.error(`Error deleting ${itemType}:`, error);
+        addNotification(
+          "error",
+          `An unexpected error occurred while deleting the ${itemType}.`
+        );
+      }
+    },
+    [mainTab, addNotification]
+  );
+
+  /* ------------- Columns Definition (Uses useMemo to access handlers) ------------- */
+
+  // Define base columns structure
+  const baseColumns = useMemo(
+    () => [
+      {
+        key: "name",
+        header: "Name",
+        sortable: true,
+      },
+      {
+        key: "slug",
+        header: "Slug",
+        sortable: true,
+      },
+      {
+        key: "description",
+        header: "Description",
+        sortable: false,
+        className: "text-gray-600 font-light text-sm",
+      },
+      {
+        key: "created_at_display", // A new key for display purposes
+        header: "Created At",
+        sortable: true,
+        render: (row) => {
+          // Render receives the entire row now
+          // 1. Check for the dedicated created_at field from Mongoose timestamps
+          if (row?.created_at) {
+            return new Date(row.created_at).toLocaleDateString();
+          }
+          // 2. Fallback: Parse the date from MongoDB _id (if created_at is missing)
+          if (row?._id) {
+            return new Date(
+              parseInt(row._id.substring(0, 8), 16) * 1000
+            ).toLocaleDateString();
+          }
+          // 3. Fail: return N/A
+          return "N/A";
+        },
+      },
+      {
+        key: "actions",
+        header: "Actions",
+        // FIX: The render function now directly accesses the handleDelete/handleEdit from the component scope
+        // because it is defined inside the component via useMemo.
+        render: (row) => (
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={(e) => {
+                e.stopPropagation(); // Prevent row click
+                handleEdit(row._id);
+              }}
+              className="p-1 rounded-full hover:bg-yellow-100 transition-colors"
+              aria-label="Edit"
+            >
+              <Edit className="w-4 h-4 text-yellow-600" />
+            </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation(); // Prevent row click
+                handleDelete(row._id); // This now works because handleDelete is in scope
+              }}
+              className="p-1 rounded-full hover:bg-red-100 transition-colors"
+              aria-label="Delete"
+            >
+              <Trash2 className="w-4 h-4 text-red-600" />
+            </button>
+          </div>
+        ),
+      },
+    ],
+    [handleEdit, handleDelete]
+  ); // Depend on handlers so columns update if handlers change (though they are wrapped in useCallback)
+
+  // Main Category Columns
+  const categoryColumns = baseColumns; // Categories use the full base columns
 
   /* ------------- Parent Name Lookup Function ------------- */
   const parentNameMap = useMemo(() => {
@@ -125,25 +196,24 @@ export default function Categories() {
     }, {});
   }, [categoryData]);
 
-  // Define subCategoryColumns here to use parentNameMap
+  // Sub Category Columns definition
   const subCategoryColumns = useMemo(() => {
-    const parentCategoryRender = (row) => { // Render receives the entire row
-      return parentNameMap[row.parent_id] || 'N/A';
-    };
-
-    return [
-      ...columns.slice(0, 3), // Name, Slug, Description
+    // We only need the first three columns, the created_at column, and the actions column
+    const relevantBaseColumns = [
+      baseColumns[0], // Name
+      baseColumns[1], // Slug
+      baseColumns[2], // Description
       {
-        key: 'parent_name', // A new key for display and sorting
-        header: 'Parent Category',
+        key: "parent_name", // New column for parent category name
+        header: "Parent Category",
         sortable: true,
-        render: parentCategoryRender,
+        render: (row) => parentNameMap[row.parent_id] || "N/A",
       },
-      columns[3], // Created At
-      columns[4], // Actions
+      baseColumns[3], // Created At
+      baseColumns[4], // Actions
     ];
-  }, [parentNameMap]);
-
+    return relevantBaseColumns;
+  }, [parentNameMap, baseColumns]);
 
   /* ------------- Data Fetching ------------- */
   const loadData = useCallback(async () => {
@@ -152,13 +222,13 @@ export default function Categories() {
       // Fetch categories and subcategories in parallel
       const [categories, subcategories] = await Promise.all([
         fetchCategories(),
-        fetchSubCategories()
+        fetchSubCategories(),
       ]);
       setCategoryData(categories);
       setSubCategoryData(subcategories);
     } catch (error) {
       console.error("Error loading data:", error);
-      addNotification('error', error.message || 'Error loading data.');
+      addNotification("error", error.message || "Error loading data.");
     } finally {
       setLoading(false);
     }
@@ -168,35 +238,20 @@ export default function Categories() {
     loadData();
   }, [loadData]);
 
-
-  /* ------------- Handlers ------------- */
-  const handleEdit = (id) => {
-    if (mainTab) {
-      // Editing a main category
-      console.log(`Edit category:`, id);
-    } else {
-      // Editing a sub-category
-      console.log(`Edit sub-category:`, id);
-    }
-    
-    addNotification('info', `Editing feature for ID ${id} not yet implemented.`);
-  };
-
-  const handleDelete = (id) => {
-    console.log(`Delete ${mainTab ? 'category' : 'sub-category'}:`, id);
-    addNotification('info', `Deletion feature for ID ${id} not yet implemented.`);
-  };
-
+  /* ------------- Additional Handlers ------------- */
   const handleBulkAction = (action, selectedIds) => {
-    if (action === 'delete') {
-      console.log('Bulk delete:', selectedIds);
-      addNotification('info', `Bulk deletion of ${selectedIds.length} items not yet implemented.`);
+    if (action === "delete") {
+      console.log("Bulk delete:", selectedIds);
+      addNotification(
+        "info",
+        `Bulk deletion of ${selectedIds.length} items not yet implemented.`
+      );
     }
   };
 
   const handleRowClick = (row) => {
     // Optional: handle row clicks for navigation/details
-    console.log('Row clicked:', row);
+    console.log("Row clicked:", row);
   };
 
   const handleCategoryAdded = (newCategory) => {
@@ -218,20 +273,28 @@ export default function Categories() {
 
   return (
     <div className="container mx-auto px-6 pb-6 shadow-md rounded-xl">
-      <h1 className="text-2xl font-bold text-gray-800 mb-6 uppercase">Category Page</h1>
+      <h1 className="text-2xl font-bold text-gray-800 mb-6 uppercase">
+        Category Page
+      </h1>
 
       {/* Tab Navigation */}
       <div className="mb-6 flex space-x-4 border-b border-gray-200">
         <button
-          className={`flex-1 py-2 px-4 text-sm cursor-pointer uppercase font-bold ${mainTab ? 'border-b-2 border-red-500 text-red-500' : 'text-gray-500 hover:text-gray-700'
-            }`}
+          className={`flex-1 py-2 px-4 text-sm cursor-pointer uppercase font-bold ${
+            mainTab
+              ? "border-b-2 border-red-500 text-red-500"
+              : "text-gray-500 hover:text-gray-700"
+          }`}
           onClick={() => setMainTab(true)}
         >
           Categories
         </button>
         <button
-          className={`flex-1 py-2 px-4 text-sm cursor-pointer uppercase font-bold ${!mainTab ? 'border-b-2 border-red-500 text-red-500' : 'text-gray-500 hover:text-gray-700'
-            }`}
+          className={`flex-1 py-2 px-4 text-sm cursor-pointer uppercase font-bold ${
+            !mainTab
+              ? "border-b-2 border-red-500 text-red-500"
+              : "text-gray-500 hover:text-gray-700"
+          }`}
           onClick={() => setMainTab(false)}
         >
           Subcategories
@@ -263,11 +326,11 @@ export default function Categories() {
       {mainTab ? (
         <Table
           data={categoryData}
-          columns={columns}
+          columns={categoryColumns} // Use categoryColumns
           onRowClick={handleRowClick}
           onBulkAction={handleBulkAction}
-          actions={{ handleEdit, handleDelete }} // Pass handlers to columns
-          searchableKeys={['name', 'slug', 'description']}
+          // The actions prop is no longer needed as the handlers are defined in the columns via useMemo
+          searchableKeys={["name", "slug", "description"]}
         />
       ) : (
         <Table
@@ -275,8 +338,8 @@ export default function Categories() {
           columns={subCategoryColumns} // Use subCategoryColumns for subcategories
           onRowClick={handleRowClick}
           onBulkAction={handleBulkAction}
-          actions={{ handleEdit, handleDelete }} // Pass handlers to columns
-          searchableKeys={['name', 'slug', 'description', 'parent_name']} // Add parent_name for search
+          // The actions prop is no longer needed
+          searchableKeys={["name", "slug", "description", "parent_name"]} // Add parent_name for search
         />
       )}
 
@@ -290,7 +353,7 @@ export default function Categories() {
           onCategoryAdded={(newCategory) => {
             handleCategoryAdded(newCategory);
             setIsAddCategoryModalOpen(false);
-            addNotification('success', 'Category added successfully!');
+            addNotification("success", "Category added successfully!");
           }}
           onCancel={() => setIsAddCategoryModalOpen(false)}
         />
@@ -306,7 +369,7 @@ export default function Categories() {
           onSubCategoryAdded={(newSubCategory) => {
             handleSubCategoryAdded(newSubCategory);
             setIsAddSubCategoryModalOpen(false);
-            addNotification('success', 'Subcategory added successfully!');
+            addNotification("success", "Subcategory added successfully!");
           }}
           onCancel={() => setIsAddSubCategoryModalOpen(false)}
           categories={categoryData} // Pass main categories to the subcategory form
