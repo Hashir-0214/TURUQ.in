@@ -1,3 +1,4 @@
+// src/components/header/CategoryOverlay.jsx
 "use client";
 
 const categories = [
