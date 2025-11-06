@@ -4,8 +4,8 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Menu, Search, X } from 'lucide-react';
-import CategoryOverlay from '@/components/header/CategoryOverlay'
-import SearchOverlay from '@/components/header/searchOverlay';
+import CategoryOverlay from '@components/header/CategoryOverlay';
+import SearchOverlay from '@components/header/searchOverlay';
 
 
 export default function Header() {
