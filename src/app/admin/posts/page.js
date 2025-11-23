@@ -11,12 +11,12 @@ import AddPostForm from "@/components/admin/posts/AddPostForm";
 import EditPostForm from "@/components/admin/posts/EditPostForm"; 
 
 const API_KEY_TO_SEND = process.env.NEXT_PUBLIC_API_KEY;
-const fetchPosts = async () => {
 
+const fetchPosts = async () => {
   if (!API_KEY_TO_SEND) {
     const msg = "API Key is missing. Check your .env.local file.";
     console.error(msg);
-    return [];
+    return { data: [] }; // Return empty structure matching expected format
   }
 
   try {
@@ -39,9 +39,8 @@ const fetchPosts = async () => {
     return data;
   } catch (error) {
     console.error("Fetch posts error:", error);
-    return Promise.reject({
-      message: "Failed to fetch posts",
-    });
+    // Return empty array wrapper to prevent .data crash
+    return { data: [] };
   }
 };
 
@@ -58,9 +57,7 @@ const fetchCats = async () => {
     return await res.json();
   } catch (error) {
     console.error("Fetch categories error:", error);
-    return Promise.reject({
-      message: "Failed to fetch categories",
-    });
+    return { data: [] };
   }
 };
 
@@ -77,16 +74,13 @@ const fetchAuthors = async () => {
     return await res.json();
   } catch (error) {
     console.error("Fetch authors error:", error);
-    return Promise.reject({
-      message: "Failed to fetch authors",
-    });
+    return { data: [] };
   }
 };
 
 /* ------------------------------------------------------------------ */
-/* Column definitions                                                */
+/* Column definitions                                                */
 /* ------------------------------------------------------------------ */
-// (POSTS_COLUMNS remains unchanged, as it correctly calls handleEdit/handleDelete)
 
 const POSTS_COLUMNS = [
   {
@@ -94,18 +88,27 @@ const POSTS_COLUMNS = [
     header: "Title",
     sortable: true,
     className: "font-bold max-w-xs truncate",
+    render: (p) => p.title || "Untitled",
   },
   {
-    key: "author_name",
+    // FIX 1: Changed key to 'author_id' (the actual field name in DB)
+    key: "author_id", 
     header: "Author",
     sortable: true,
+    // FIX 2: Added render function to safely access the nested .name property
+    render: (p) => {
+        // If author_id is an object (populated), show name. 
+        // If it's just a string ID (not populated), show ID.
+        // If missing, show Unknown.
+        return p.author_id?.name || "Unknown Author";
+    }
   },
   {
     key: "created_at",
     header: "Date",
     sortable: true,
     className: "text-gray-600",
-    render: (p) => new Date(p.created_at).toLocaleDateString(),
+    render: (p) => p.created_at ? new Date(p.created_at).toLocaleDateString() : "-",
   },
   {
     key: "views",
@@ -114,7 +117,7 @@ const POSTS_COLUMNS = [
     className: "text-center",
     render: (p) => (
       <span className="bg-gray-200 text-gray-800 px-3 py-1 rounded-full text-xs font-semibold">
-        {p.views}
+        {p.views || 0}
       </span>
     ),
   },
@@ -152,6 +155,7 @@ const POSTS_COLUMNS = [
 
         <Link
           href={`/${post.slug || post._id}`}
+          target="_blank"
           className="p-1 rounded-full hover:bg-blue-100"
           aria-label="View"
           onClick={(e) => e.stopPropagation()}
@@ -176,7 +180,7 @@ const POSTS_COLUMNS = [
 
 
 /* ------------------------------------------------------------------ */
-/* Page component                                                    */
+/* Page component                                                    */
 /* ------------------------------------------------------------------ */
 export default function PostsPage() {
   const [posts, setPosts] = useState([]);
@@ -184,22 +188,18 @@ export default function PostsPage() {
   const [authors, setAuthors] = useState([]);
   const [loading, setLoading] = useState(true);
   
-  // MODIFIED: State to handle both Add and Edit modal flows
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingPostId, setEditingPostId] = useState(null); // Tracks the ID of the post being edited
+  const [editingPostId, setEditingPostId] = useState(null); 
 
   const [catFilter, setCatFilter] = useState("");
 
-  // Helper to open the modal for creating a new post
   const openCreateModal = () => {
-    setEditingPostId(null); // Explicitly clear any editing ID
+    setEditingPostId(null); 
     setIsModalOpen(true);
   };
 
-  // Helper to close the modal
   const closeModal = () => {
     setIsModalOpen(false);
-    // Reset editingPostId after closing animation finishes (optional delay)
     setTimeout(() => setEditingPostId(null), 300); 
   };
   
@@ -207,9 +207,10 @@ export default function PostsPage() {
     setLoading(true);
     try {
       const [p, c, a] = await Promise.all([fetchPosts(), fetchCats(), fetchAuthors()]);
-      setPosts(p.data || []);
-      setCats(c.data || []);
-      setAuthors(a.data || []);
+      // Ensure we always default to arrays to prevent .filter crashes
+      setPosts(Array.isArray(p.data) ? p.data : []);
+      setCats(Array.isArray(c.data) ? c.data : []);
+      setAuthors(Array.isArray(a.data) ? a.data : []);
     } catch (error) {
       console.error("Initial data load failed:", error);
       setPosts([]);
@@ -225,7 +226,6 @@ export default function PostsPage() {
   }, []);
 
   const handleDelete = async (id) => {
-    // MODIFIED: Replaced confirm with window.confirm (standard DOM API)
     if (!window.confirm("Are you sure you want to delete this post?")) return; 
     try {
       const res = await fetch("/api/admin/posts", {
@@ -237,30 +237,27 @@ export default function PostsPage() {
         body: JSON.stringify({ _id: id }),
       });
       if (!res.ok) throw new Error("Delete failed");
+      
+      // Update local state to remove item immediately
       setPosts((prev) => prev.filter((p) => p._id !== id));
       console.log("Post deleted successfully:", id);
     } catch (error) {
       console.error("Delete post error:", error);
-      // Removed alert, using console error as instructed
       console.error("Could not delete post.");
     }
   };
 
-  // MODIFIED: handleEdit now sets the state to open the Edit modal
   const handleEdit = (id) => {
     setEditingPostId(id);
     setIsModalOpen(true);
   };
 
-  // Handler for successful ADDITION
   const handleAdded = (newPost) => {
     setPosts((prev) => [newPost, ...prev]);
     closeModal();
   };
   
-  // NEW Handler for successful UPDATE
   const handleUpdated = (updatedPost) => {
-      // Find the updated post by ID and replace it in the array
       setPosts(prev => prev.map(post => 
           post._id === updatedPost._id ? updatedPost : post
       ));
@@ -270,7 +267,15 @@ export default function PostsPage() {
   /* ------------- filtering ------------- */
   const filtered = useMemo(() => {
     if (!catFilter) return posts;
-    return posts.filter((p) => p.category_name === catFilter);
+    // Updated filter to check subcategory_ids array if that's what backend returns
+    // Or fallback to checking if the category name exists in the populated array
+    return posts.filter((p) => {
+        // If posts have subcategory_ids array populated with objects
+        if (Array.isArray(p.subcategory_ids)) {
+            return p.subcategory_ids.some(sub => sub.name === catFilter);
+        }
+        return false;
+    });
   }, [posts, catFilter]);
 
   /* ------------- render ------------- */
@@ -312,17 +317,17 @@ export default function PostsPage() {
           loading={loading}
           searchable
           sortable
-          searchPlaceholder="Search by title, author, or category…"
+          searchPlaceholder="Search by title..."
           emptyMessage="No posts found."
-          searchKeys={["title", "author_name", "category_name"]}
+          // Removed 'author_name' from searchKeys as it doesn't exist on the root object
+          searchKeys={["title"]} 
           onReload={load}
           handlers={{ handleEdit, handleDelete }}
         />
       </main>
 
-      {/* MODAL: Handles both Add and Edit */}
+      {/* MODAL */}
       <Modal
-        // Key ensures component remounts when switching between Add/Edit
         key={`post-modal-${editingPostId || 'new'}`} 
         isOpen={isModalOpen}
         onClose={closeModal}

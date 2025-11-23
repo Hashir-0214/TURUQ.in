@@ -5,13 +5,19 @@ import { NextResponse } from "next/server";
 import dbConnect from "@/mongodb";
 import bcrypt from "bcryptjs";
 
-const SECURE_API_KEY = process.env.API_KEY;
+// FIX: Allow either variable to be used as the server key
+const SECURE_API_KEY = process.env.NEXT_PUBLIC_API_KEY || process.env.API_KEY;
 
 // Centralized authentication function
 const checkAuth = (req) => {
     const apikey = req.headers.get("x-api-key");
-    // FIX 2: Check if the secure key exists and matches the header key
-    if (!SECURE_API_KEY || apikey !== SECURE_API_KEY) {
+    
+    if (!SECURE_API_KEY) {
+        console.error("CRITICAL ERROR: No API Key found in Server Environment Variables.");
+        return false;
+    }
+
+    if (apikey !== SECURE_API_KEY) {
         return false;
     }
     return true;
@@ -36,7 +42,7 @@ export async function GET(req) {
     const { searchParams } = new URL(req.url);
     const userId = searchParams.get("id");
 
-    let users;
+    let result;
     if (userId) {
       const user = await User.findById(userId);
       if (!user) {
@@ -45,12 +51,15 @@ export async function GET(req) {
           { status: 404 }
         );
       }
-      users = user; 
+      result = user; 
     } else {
       // Fetch all users
-      users = await User.find().sort({ created_at: -1 });
+      result = await User.find().sort({ created_at: -1 });
     }
-    return NextResponse.json(users);
+
+    // FIX: Wrap result in 'data' for consistency with other APIs
+    return NextResponse.json({ data: result });
+
   } catch (error) {
     console.error("Error fetching users:", error);
     return NextResponse.json(
@@ -129,7 +138,6 @@ export async function PUT(req) {
   }
 
   try {
-    // Extract _id and password, keeping the rest as updateData
     const { _id, password, ...updateData } = await req.json();
 
     if (!_id) {
@@ -139,16 +147,13 @@ export async function PUT(req) {
       );
     }
 
-    // 🔑 SECURITY IMPLEMENTATION: Only hash the password if a new one is provided
     if (password) {
       const saltRounds = 10;
       updateData.password = await bcrypt.hash(password, saltRounds);
     } else {
-      // Ensure we don't try to save an empty password field if one wasn't provided for update
       delete updateData.password;
     }
 
-    // Use updateData (which now might include a hashed password)
     const updatedUser = await User.findByIdAndUpdate(_id, updateData, {
       new: true,
       runValidators: true,
@@ -187,6 +192,7 @@ export async function DELETE(req) {
     await dbConnect();
   } catch (e) {
     console.error("Database connection failed in DELETE /users:", e);
+    return NextResponse.json({ message: "Database connection failed" }, { status: 500 });
   }
 
   if (!checkAuth(req)) {

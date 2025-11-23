@@ -17,7 +17,7 @@ const fetchUsers = async (addNotification) => {
   if (!API_KEY_TO_SEND) {
     const msg = "API Key is missing. Check your .env.local file.";
     console.error(msg);
-    addNotification("error", msg);
+    if (addNotification) addNotification("error", msg);
     return [];
   }
 
@@ -31,21 +31,28 @@ const fetchUsers = async (addNotification) => {
     });
 
     if (!res.ok) {
-      // Throw an error with the status for better debugging
       const errorData = await res.json();
       throw new Error(
         errorData.message || `Failed to fetch users: ${res.status}`
       );
     }
 
-    const data = await res.json();
-    return data;
+    const jsonData = await res.json();
+    
+    // FIX: Extract data array safely. 
+    // Handle cases where API returns { data: [] } OR just []
+    if (jsonData.data && Array.isArray(jsonData.data)) {
+        return jsonData.data;
+    } else if (Array.isArray(jsonData)) {
+        return jsonData;
+    }
+    
+    return [];
   } catch (error) {
     console.error("Fetch users error:", error);
     if (addNotification) {
       addNotification("error", error.message || "Error loading users.");
     }
-
     return [];
   }
 };
@@ -108,7 +115,7 @@ const columns = [
       <div className="flex gap-2">
         <button
           onClick={(e) => {
-            e.stopPropagation(); // Prevent row click
+            e.stopPropagation();
             handleEdit(row._id);
           }}
           className="p-1 bg-green-600 text-white border border-black rounded text-xs hover:bg-green-700 transition-colors"
@@ -119,7 +126,6 @@ const columns = [
         <button
           onClick={(e) => {
             e.stopPropagation();
-            // FIX: Call the new function to open the confirmation modal
             openDeleteModal(row._id, row.name);
           }}
           className="p-1 bg-red-600 text-white border border-black rounded text-xs hover:bg-red-700 transition-colors"
@@ -145,7 +151,7 @@ export default function UsersPage() {
 
   const loadUsers = useCallback(async () => {
     setLoading(true);
-    setHasError(false); // Reset error status on new attempt
+    setHasError(false);
     try {
       const data = await fetchUsers(addNotification);
       setUsers(data);
@@ -154,7 +160,7 @@ export default function UsersPage() {
         setHasError(true);
       }
     } catch (error) {
-      setHasError(true); // Set error flag on failed fetch
+      setHasError(true);
     } finally {
       setLoading(false);
     }
@@ -163,18 +169,6 @@ export default function UsersPage() {
   useEffect(() => {
     loadUsers();
   }, [loadUsers]);
-
-  if (loading && users.length === 0 && !hasError) {
-    return (
-      <div className="flex justify-center items-center h-screen">
-        <LoaderCircle className="w-10 h-10 animate-spin text-red-600" />
-      </div>
-    );
-  }
-
-  if (hasError && users.length === 0 && !loading) {
-    console.log("Users page rendered with critical error.");
-  }
 
   const handleUserAdded = (newUser) => {
     setUsers((prev) => [...prev, newUser]);
@@ -247,6 +241,7 @@ export default function UsersPage() {
     console.log("User row clicked:", row.name);
   };
 
+  // UI Render states
   if (loading && users.length === 0) {
     return (
       <div className="flex justify-center items-center h-[500px]">
@@ -279,13 +274,14 @@ export default function UsersPage() {
             loading={loading}
             onReload={loadUsers}
             handlers={{ handleEdit, openDeleteModal }}
-            searchKeys={["name", "email", "slug"]}
+            // FIX: Removed 'slug' as users usually don't have slugs, added 'username'
+            searchKeys={["name", "email", "username"]}
             selectable={false}
             bulkActions={[]}
             onBulkAction={() => {}}
             onSelectionChange={() => {}}
             onRowClick={handleRowClick}
-            searchPlaceholder="Search by name, email, or slug..."
+            searchPlaceholder="Search by name, email, or username..."
           />
         </main>
       </div>
@@ -334,9 +330,10 @@ export default function UsersPage() {
             ? This action cannot be undone.
           </p>
           <div className="flex justify-end space-x-3">
+            {/* FIX: Corrected Cancel button styling */}
             <button
               onClick={() => setIsDeleteModalOpen(false)}
-              className="px-4 py-2 bg-gray-300 text-gray-800 mb-6 uppercase"
+              className="px-4 py-2 bg-gray-300 text-gray-800 rounded-md hover:bg-gray-400 transition-colors"
             >
               Cancel
             </button>
