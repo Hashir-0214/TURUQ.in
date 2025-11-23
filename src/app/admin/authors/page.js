@@ -19,7 +19,7 @@ import { EditAuthorForm } from '@/components/admin/authors/EditAuthorForm';
 const fetchAuthors = async (addNotification) => {
   const API_KEY_TO_SEND = process.env.NEXT_PUBLIC_API_KEY;
 
-  if (!API_KEY_TO_SEND) {
+  if (!process.env.NEXT_PUBLIC_API_KEY) {
     const msg = 'API Key is missing. Check your .env.local file.';
     console.error(msg);
     addNotification('error', msg);
@@ -30,7 +30,7 @@ const fetchAuthors = async (addNotification) => {
     const res = await fetch('/api/admin/authors', {
       method: 'GET',
       headers: {
-        'x-api-key': API_KEY_TO_SEND,
+        'x-api-key': process.env.NEXT_PUBLIC_API_KEY,
         'Content-Type': 'application/json',
       }
     });
