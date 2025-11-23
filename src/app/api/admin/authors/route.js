@@ -4,21 +4,27 @@ import Author from '@/models/Author';
 import { NextResponse } from 'next/server';
 import dbConnect from '@/mongodb';
 
-// FIX 1: Use a dedicated, server-only environment variable for security
-const SECURE_API_KEY = process.env.API_KEY; 
+// FIX: Allow either variable to be used as the server key
+const SECURE_API_KEY = process.env.NEXT_PUBLIC_API_KEY || process.env.API_KEY;
 
 // Centralized authentication function
 const checkAuth = (req) => {
     const apikey = req.headers.get("x-api-key");
-    // FIX 2: Check if the secure key exists and matches the header key
-    if (!SECURE_API_KEY || apikey !== SECURE_API_KEY) {
+    
+    // FIX: Detailed logging to help you debug in Vercel Logs if it fails again
+    if (!SECURE_API_KEY) {
+        console.error("CRITICAL ERROR: No API Key found in Server Environment Variables.");
+        return false;
+    }
+
+    if (apikey !== SECURE_API_KEY) {
+        console.error("Auth Failed. Received:", apikey ? "***" : "null", "Expected:", "***");
         return false;
     }
     return true;
 }
 
-
-export async function GET(req) { // Changed to 'req' (standard)
+export async function GET(req) { 
     try {
         await dbConnect();
     } catch (e) {
@@ -26,14 +32,14 @@ export async function GET(req) { // Changed to 'req' (standard)
         return NextResponse.json({ message: 'Database connection failed' }, { status: 500 });
     }
 
-    // FIX 3: Apply the security check
     if (!checkAuth(req)) {
         return NextResponse.json({ message: 'Unauthorized' }, { status: 401 });
     }
 
     try {
         const authors = await Author.find().sort({ created_at: -1 });
-        return NextResponse.json(authors);
+        // Wrap in 'data' property if your frontend expects { data: [...] }
+        return NextResponse.json({ data: authors }); 
     } catch (error) {
         console.error("Error fetching authors:", error);
         return NextResponse.json({ message: 'Error fetching authors' }, { status: 500 });
@@ -121,14 +127,12 @@ export async function DELETE(req) {
     }
 
     try {
-        // The frontend sends the ID in the request body
-        const { id } = await req.json(); 
+        const { id } = await req.json(); // Changed to 'id' to match frontend usually
 
         if (!id) {
             return NextResponse.json({ message: 'Author ID is required for deletion.' }, { status: 400 });
         }
 
-        // Use findByIdAndDelete to remove the document
         const deletedAuthor = await Author.findByIdAndDelete(id); 
 
         if (!deletedAuthor) {

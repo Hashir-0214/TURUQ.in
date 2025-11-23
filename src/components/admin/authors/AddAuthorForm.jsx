@@ -1,25 +1,12 @@
 // src/components/admin/authors/AddAuthorForm.jsx
-
 "use client";
 
 import React, { useState } from "react";
 import { LoaderCircle, Save, X } from "lucide-react";
 
-// Utility function to generate a slug from a string
-// const slugify = (text) => {
-//   return text
-//     .toLowerCase()
-//     .trim()
-//     .replace(/[^a-z0-9\s-]/g, "") // Remove non-alphanumeric characters (except spaces and hyphens)
-//     .replace(/[\s-]+/g, "-"); // Replace spaces and multiple hyphens with a single hyphen
-// };
-
 const MALAYALAM_MAP = {
-  // Vowels (independent)
   'അ': 'a', 'ആ': 'aa', 'ഇ': 'i', 'ഈ': 'ee', 'ഉ': 'u', 'ഊ': 'oo', 
   'ഋ': 'ru', 'എ': 'e', 'ഏ': 'e', 'ഐ': 'ai', 'ഒ': 'o', 'ഓ': 'o', 'ഔ': 'au',
-  
-  // Consonants (with inherent 'a')
   'ക': 'ka', 'ഖ': 'kha', 'ഗ': 'ga', 'ഘ': 'gha', 'ങ': 'nga',
   'ച': 'cha', 'ഛ': 'chha', 'ജ': 'ja', 'ഝ': 'jha', 'ഞ': 'nja',
   'ട': 'ta', 'ഠ': 'tha', 'ഡ': 'da', 'ഢ': 'dha', 'ണ': 'na',
@@ -28,123 +15,66 @@ const MALAYALAM_MAP = {
   'യ': 'ya', 'ര': 'ra', 'ല': 'la', 'വ': 'va',
   'ശ': 'sha', 'ഷ': 'sha', 'സ': 'sa', 'ഹ': 'ha', 
   'ള': 'la', 'ഴ': 'zha', 'റ': 'ra',
-  
-  // Chillu characters (consonants without inherent vowel)
   'ൺ': 'n', 'ൻ': 'n', 'ർ': 'r', 'ൽ': 'l', 'ൾ': 'l', 'ൿ': 'k',
-  
-  // Vowel signs (modify preceding consonant)
   'ാ': 'aa', 'ി': 'i', 'ീ': 'ee', 'ു': 'u', 'ൂ': 'oo', 
   'ൃ': 'ru', 'െ': 'e', 'േ': 'e', 'ൈ': 'ai', 
   'ൊ': 'o', 'ോ': 'o', 'ൗ': 'au', 'ൌ': 'au',
-  
-  // Other signs
-  'ം': 'm', 'ഃ': 'h', '്': '', // Virama removes inherent 'a'
-  
-  // Digits
+  'ം': 'm', 'ഃ': 'h', '്': '',
   '൦': '0', '൧': '1', '൨': '2', '൩': '3', '൪': '4', 
   '൫': '5', '൬': '6', '൭': '7', '൮': '8', '൯': '9'
 };
 
-// Consonants without inherent vowel
-const CONSONANTS = new Set([
-  'ക', 'ഖ', 'ഗ', 'ഘ', 'ങ',
-  'ച', 'ഛ', 'ജ', 'ഝ', 'ഞ',
-  'ട', 'ഠ', 'ഡ', 'ഢ', 'ണ',
-  'ത', 'ഥ', 'ദ', 'ധ', 'ന',
-  'പ', 'ഫ', 'ബ', 'ഭ', 'മ',
-  'യ', 'ര', 'ല', 'വ',
-  'ശ', 'ഷ', 'സ', 'ഹ', 'ള', 'ഴ', 'റ'
-]);
-
-// Vowel signs that modify consonants
-const VOWEL_SIGNS = new Set([
-  'ാ', 'ി', 'ീ', 'ു', 'ൂ', 'ൃ', 'െ', 'േ', 'ൈ', 'ൊ', 'ോ', 'ൗ', 'ൌ'
-]);
-
+const CONSONANTS = new Set(['ക', 'ഖ', 'ഗ', 'ഘ', 'ങ', 'ച', 'ഛ', 'ജ', 'ഝ', 'ഞ', 'ട', 'ഠ', 'ഡ', 'ഢ', 'ണ', 'ത', 'ഥ', 'ദ', 'ധ', 'ന', 'പ', 'ഫ', 'ബ', 'ഭ', 'മ', 'യ', 'ര', 'ല', 'വ', 'ശ', 'ഷ', 'സ', 'ഹ', 'ള', 'ഴ', 'റ']);
+const VOWEL_SIGNS = new Set(['ാ', 'ി', 'ീ', 'ു', 'ൂ', 'ൃ', 'െ', 'േ', 'ൈ', 'ൊ', 'ോ', 'ൗ', 'ൌ']);
 const VIRAMA = '്';
 
 const slugify = (text) => {
   if (!text) return '';
-  
   const normalized = text.toString().toLowerCase();
   let result = '';
   
   for (let i = 0; i < normalized.length; i++) {
     const char = normalized[i];
     const nextChar = normalized[i + 1];
-    
-    // Check if current character is a consonant
     if (CONSONANTS.has(char)) {
       const baseConsonant = MALAYALAM_MAP[char];
-      
-      // Check if followed by virama (removes inherent 'a')
       if (nextChar === VIRAMA) {
-        result += baseConsonant.slice(0, -1); // Remove the 'a'
-        i++; // Skip the virama
-        continue;
+        result += baseConsonant.slice(0, -1);
+        i++; continue;
       }
-      
-      // Check if followed by vowel sign
       if (VOWEL_SIGNS.has(nextChar)) {
-        const consonantWithoutA = baseConsonant.slice(0, -1);
-        const vowelSound = MALAYALAM_MAP[nextChar];
-        result += consonantWithoutA + vowelSound;
-        i++; // Skip the vowel sign
-        continue;
+        result += baseConsonant.slice(0, -1) + MALAYALAM_MAP[nextChar];
+        i++; continue;
       }
-      
-      // Just the consonant with inherent 'a'
       result += baseConsonant;
-    }
-    // Handle other characters
-    else if (MALAYALAM_MAP[char] !== undefined) {
+    } else if (MALAYALAM_MAP[char] !== undefined) {
       result += MALAYALAM_MAP[char];
-    }
-    else {
-      // Keep non-Malayalam characters as is
+    } else {
       result += char;
     }
   }
-  
-  // Apply standard slug rules
-  return result
-    .trim()
-    .replace(/\s+/g, '-')
-    .replace(/[^\w\-]+/g, '')
-    .replace(/\-\-+/g, '-')
-    .replace(/^-+|-+$/g, ''); // Remove leading/trailing hyphens
+  return result.trim().replace(/\s+/g, '-').replace(/[^\w\-]+/g, '').replace(/\-\-+/g, '-').replace(/^-+|-+$/g, '');
 };
 
 export const AddAuthorForm = ({ onAuthorAdded, onCancel }) => {
   const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    slug: "",
-    phone: "",
-    biography: "",
-    avatar: "",
-    // avatar is typically handled by a separate file upload component, keeping it simple for now
+    name: "", email: "", slug: "", phone: "", biography: "", avatar: "",
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
   const API_KEY_TO_SEND = process.env.NEXT_PUBLIC_API_KEY;
 
-  // Handle input changes, including automatic slug generation for the name field
   const handleChange = (e) => {
     const { name, value } = e.target;
-
     setFormData((prev) => {
       const newState = { ...prev, [name]: value };
-
-      // Automatically generate slug when name changes
       if (name === "name") {
         newState.slug = slugify(value);
       }
-
       return newState;
     });
-    setError(""); // Clear error on change
+    setError("");
   };
 
   const handleSubmit = async (e) => {
@@ -152,7 +82,6 @@ export const AddAuthorForm = ({ onAuthorAdded, onCancel }) => {
     setLoading(true);
     setError("");
 
-    // Basic validation
     if (!formData.name || !formData.email || !formData.slug) {
       setError("Name, Email, and Slug are required.");
       setLoading(false);
@@ -164,7 +93,6 @@ export const AddAuthorForm = ({ onAuthorAdded, onCancel }) => {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          // Pass the API key for authentication
           "x-api-key": API_KEY_TO_SEND,
         },
         body: JSON.stringify(formData),
@@ -173,17 +101,13 @@ export const AddAuthorForm = ({ onAuthorAdded, onCancel }) => {
       const result = await res.json();
 
       if (!res.ok) {
-        // Handle API error messages (e.g., 409 Conflict, 400 Validation)
-        throw new Error(
-          result.message || `Failed to add author (Status: ${res.status})`
-        );
+        throw new Error(result.message || `Failed to add author (Status: ${res.status})`);
       }
 
-      // Success! Call the parent handler to update the table data
       onAuthorAdded(result);
     } catch (err) {
       console.error("Add Author Error:", err.message);
-      setError(err.message || "An unknown error occurred during submission.");
+      setError(err.message || "An error occurred.");
     } finally {
       setLoading(false);
     }
@@ -197,12 +121,8 @@ export const AddAuthorForm = ({ onAuthorAdded, onCancel }) => {
         </div>
       )}
 
-      {/* Name */}
       <div>
-        <label
-          htmlFor="name"
-          className="block text-sm font-medium text-gray-700"
-        >
+        <label htmlFor="name" className="block text-sm font-medium text-gray-700">
           Author Name <span className="text-red-500">*</span>
         </label>
         <input
@@ -212,16 +132,12 @@ export const AddAuthorForm = ({ onAuthorAdded, onCancel }) => {
           value={formData.name}
           onChange={handleChange}
           required
-          className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm p-2 focus:border-red-500 focus:ring-red-500 text-sm"
+          className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm p-2 text-sm"
         />
       </div>
 
-      {/* Email */}
       <div>
-        <label
-          htmlFor="email"
-          className="block text-sm font-medium text-gray-700"
-        >
+        <label htmlFor="email" className="block text-sm font-medium text-gray-700">
           Email <span className="text-red-500">*</span>
         </label>
         <input
@@ -231,16 +147,12 @@ export const AddAuthorForm = ({ onAuthorAdded, onCancel }) => {
           value={formData.email}
           onChange={handleChange}
           required
-          className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm p-2 focus:border-red-500 focus:ring-red-500 text-sm"
+          className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm p-2 text-sm"
         />
       </div>
 
-      {/* Slug */}
       <div>
-        <label
-          htmlFor="slug"
-          className="block text-sm font-medium text-gray-700"
-        >
+        <label htmlFor="slug" className="block text-sm font-medium text-gray-700">
           Slug <span className="text-red-500">*</span>
         </label>
         <input
@@ -250,69 +162,50 @@ export const AddAuthorForm = ({ onAuthorAdded, onCancel }) => {
           value={formData.slug}
           onChange={handleChange}
           required
-          className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm p-2 focus:border-red-500 focus:ring-red-500 text-sm bg-gray-50"
-          placeholder="Auto-generated from name"
+          className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm p-2 text-sm bg-gray-50"
         />
       </div>
 
-      {/* Phone (Optional) */}
       <div>
-        <label
-          htmlFor="phone"
-          className="block text-sm font-medium text-gray-700"
-        >
-          Phone
-        </label>
+        <label htmlFor="phone" className="block text-sm font-medium text-gray-700">Phone</label>
         <input
           type="text"
           id="phone"
           name="phone"
           value={formData.phone}
           onChange={handleChange}
-          className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm p-2 focus:border-red-500 focus:ring-red-500 text-sm"
+          className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm p-2 text-sm"
         />
       </div>
 
-      {/* Biography (Optional) */}
       <div>
-        <label
-          htmlFor="biography"
-          className="block text-sm font-medium text-gray-700"
-        >
-          Biography
-        </label>
+        <label htmlFor="biography" className="block text-sm font-medium text-gray-700">Biography</label>
         <textarea
           id="biography"
           name="biography"
           value={formData.biography}
           onChange={handleChange}
           rows="3"
-          className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm p-2 focus:border-red-500 focus:ring-red-500 text-sm"
+          className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm p-2 text-sm"
         />
       </div>
 
-      {/* Actions */}
       <div className="flex justify-end space-x-3 pt-2">
         <button
           type="button"
           onClick={onCancel}
           disabled={loading}
-          className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 border border-gray-300 rounded-md shadow-sm hover:bg-gray-300 transition-colors"
+          className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300"
         >
-          <X className="w-4 h-4 mr-1" />
-          Cancel
+          <X className="w-4 h-4 mr-1" /> Cancel
         </button>
         <button
           type="submit"
           disabled={loading}
-          className="flex items-center px-4 py-2 text-sm font-medium text-white bg-red-600 border border-transparent rounded-md shadow-sm hover:bg-red-700 transition-colors disabled:opacity-50"
+          className="flex items-center px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-md hover:bg-red-700 disabled:opacity-50"
         >
-          {loading ? (
-            <LoaderCircle className="w-4 h-4 mr-2 animate-spin" />
-          ) : (
-            <Save className="w-4 h-4 mr-2" />
-          )}
-          {loading ? "Adding Author..." : "Add Author"}
+          {loading ? <LoaderCircle className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
+          {loading ? "Adding..." : "Add Author"}
         </button>
       </div>
     </form>

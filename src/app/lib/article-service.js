@@ -62,8 +62,8 @@ export async function getHomeData() {
     // Fetch all published posts
     const posts = await Post.find({ status: 'published' })
       .sort({ created_at: -1 })
-      .populate('author_id')        // Requires 'Author' model to be registered
-      .populate('subcategory_ids')  // Requires 'SubCategory' model to be registered
+      .populate('author_id')
+      .populate('subcategory_ids')
       .lean()
       .exec();
 

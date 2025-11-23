@@ -16,13 +16,15 @@ import { useNotification } from '@/components/ui/notification/NotificationProvid
 import { AddAuthorForm } from '@/components/admin/authors/AddAuthorForm';
 import { EditAuthorForm } from '@/components/admin/authors/EditAuthorForm';
 
+// --- API FETCH FUNCTION ---
 const fetchAuthors = async (addNotification) => {
+  // Use the public key for the client-side request
   const API_KEY_TO_SEND = process.env.NEXT_PUBLIC_API_KEY;
 
-  if (!process.env.NEXT_PUBLIC_API_KEY) {
+  if (!API_KEY_TO_SEND) {
     const msg = 'API Key is missing. Check your .env.local file.';
     console.error(msg);
-    addNotification('error', msg);
+    if (addNotification) addNotification('error', msg);
     return [];
   }
 
@@ -30,7 +32,7 @@ const fetchAuthors = async (addNotification) => {
     const res = await fetch('/api/admin/authors', {
       method: 'GET',
       headers: {
-        'x-api-key': process.env.NEXT_PUBLIC_API_KEY,
+        'x-api-key': API_KEY_TO_SEND,
         'Content-Type': 'application/json',
       }
     });
@@ -40,19 +42,23 @@ const fetchAuthors = async (addNotification) => {
       throw new Error(errorData.message || `Failed to fetch authors: ${res.status}`);
     }
 
-    const data = await res.json();
-    return data;
+    const jsonData = await res.json();
+    
+    // FIX: The route now returns { data: [...] }, so we extract .data
+    // If jsonData.data is undefined, fallback to an empty array
+    return Array.isArray(jsonData.data) ? jsonData.data : [];
+
   } catch (error) {
     console.error("Fetch authors error:", error);
     if (addNotification) {
       addNotification('error', error.message || 'Error loading authors.');
     }
-    return Promise.reject({
-      message: error.message || 'Error fetching authors.',
-    })
+    // Return empty array on error to prevent map errors in UI
+    return []; 
   }
 }
 
+// --- TABLE COLUMNS CONFIG ---
 const columns = [
   {
     key: 'name',
@@ -122,7 +128,6 @@ const columns = [
         <button
           onClick={(e) => {
             e.stopPropagation();
-            // FIX: Call the new function to open the confirmation modal
             openDeleteModal(row._id, row.name);
           }}
           className="p-1 bg-red-600 text-white border border-black rounded text-xs hover:bg-red-700 transition-colors"
@@ -148,16 +153,17 @@ export default function AuthorsPage() {
 
   const loadAuthors = useCallback(async () => {
     setLoading(true);
-    setHasError(false); // Reset error status on new attempt
+    setHasError(false); 
     try {
       const data = await fetchAuthors(addNotification);
       setAuthors(data);
-      // Check for empty array returned on error inside fetchAuthors
+      
+      // If data is empty and we don't have a key, assume config error
       if (data.length === 0 && !process.env.NEXT_PUBLIC_API_KEY) {
         setHasError(true);
       }
     } catch (error) {
-      setHasError(true); // Set error flag on failed fetch
+      setHasError(true); 
     } finally {
       setLoading(false);
     }
@@ -167,17 +173,6 @@ export default function AuthorsPage() {
     loadAuthors();
   }, [loadAuthors]);
 
-  if (loading && authors.length === 0 && !hasError) {
-    return (
-      <div className="flex justify-center items-center h-screen">
-        <LoaderCircle className="w-10 h-10 animate-spin text-red-600" />
-      </div>
-    );
-  }
-
-  if (hasError && authors.length === 0 && !loading) {
-    console.log('Authors page rendered with critical error.');
-  }
   /* ------------- Handlers ------------- */
   const handleAuthorAdded = (newAuthor) => {
     setAuthors((prev) => [...prev, newAuthor]);
@@ -207,7 +202,6 @@ export default function AuthorsPage() {
     const id = authorToDelete.id;
     if (!id) return;
 
-    // Close the modal immediately after confirmation to prevent double submission
     setIsDeleteModalOpen(false);
 
     const API_KEY_TO_SEND = process.env.NEXT_PUBLIC_API_KEY;
@@ -260,7 +254,7 @@ export default function AuthorsPage() {
           {/* Action Button: New Author */}
           <div className="flex items-center justify-end mb-4">
             <button
-              onClick={() => setIsAddAuthorModalOpen(true)} // Open modal on click
+              onClick={() => setIsAddAuthorModalOpen(true)} 
               className="flex items-center text-sm px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors cursor-pointer"
             >
               <PlusCircle className="w-5 h-5 mr-2" />
@@ -292,7 +286,6 @@ export default function AuthorsPage() {
         onClose={() => setIsAddAuthorModalOpen(false)}
         title="Add New Author"
       >
-        {/* Pass necessary props to the form component */}
         <AddAuthorForm
           onAuthorAdded={(newAuthor) => {
             handleAuthorAdded(newAuthor);
@@ -303,6 +296,7 @@ export default function AuthorsPage() {
         />
       </Modal>
 
+      {/* Edit Author Modal */}
       <Modal
         isOpen={isEditAuthorModalOpen}
         onClose={() => setIsEditAuthorModalOpen(false)}
@@ -317,6 +311,7 @@ export default function AuthorsPage() {
         )}
       </Modal>
 
+      {/* Delete Confirmation Modal */}
       <Modal
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
@@ -335,7 +330,7 @@ export default function AuthorsPage() {
               Cancel
             </button>
             <button
-              onClick={handleDelete} // Call the core logic function
+              onClick={handleDelete} 
               className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"
             >
               Delete

@@ -4,13 +4,56 @@
 import React, { useState, useEffect } from 'react';
 import { LoaderCircle, Save, X } from 'lucide-react';
 
-// Utility function to generate a slug from a string (same as in AddAuthorForm)
+// --- MALAYALAM SLUGIFY LOGIC (Synced with AddAuthorForm) ---
+const MALAYALAM_MAP = {
+    'അ': 'a', 'ആ': 'aa', 'ഇ': 'i', 'ഈ': 'ee', 'ഉ': 'u', 'ഊ': 'oo', 
+    'ഋ': 'ru', 'എ': 'e', 'ഏ': 'e', 'ഐ': 'ai', 'ഒ': 'o', 'ഓ': 'o', 'ഔ': 'au',
+    'ക': 'ka', 'ഖ': 'kha', 'ഗ': 'ga', 'ഘ': 'gha', 'ങ': 'nga',
+    'ച': 'cha', 'ഛ': 'chha', 'ജ': 'ja', 'ഝ': 'jha', 'ഞ': 'nja',
+    'ട': 'ta', 'ഠ': 'tha', 'ഡ': 'da', 'ഢ': 'dha', 'ണ': 'na',
+    'ത': 'ta', 'ഥ': 'tha', 'ദ': 'da', 'ധ': 'dha', 'ന': 'na',
+    'പ': 'pa', 'ഫ': 'pha', 'ബ': 'ba', 'ഭ': 'bha', 'മ': 'ma',
+    'യ': 'ya', 'ര': 'ra', 'ല': 'la', 'വ': 'va',
+    'ശ': 'sha', 'ഷ': 'sha', 'സ': 'sa', 'ഹ': 'ha', 
+    'ള': 'la', 'ഴ': 'zha', 'റ': 'ra',
+    'ൺ': 'n', 'ൻ': 'n', 'ർ': 'r', 'ൽ': 'l', 'ൾ': 'l', 'ൿ': 'k',
+    'ാ': 'aa', 'ി': 'i', 'ീ': 'ee', 'ു': 'u', 'ൂ': 'oo', 
+    'ൃ': 'ru', 'െ': 'e', 'േ': 'e', 'ൈ': 'ai', 
+    'ൊ': 'o', 'ോ': 'o', 'ൗ': 'au', 'ൌ': 'au',
+    'ം': 'm', 'ഃ': 'h', '്': '',
+    '൦': '0', '൧': '1', '൨': '2', '൩': '3', '൪': '4', 
+    '൫': '5', '൬': '6', '൭': '7', '൮': '8', '൯': '9'
+};
+const CONSONANTS = new Set(['ക', 'ഖ', 'ഗ', 'ഘ', 'ങ', 'ച', 'ഛ', 'ജ', 'ഝ', 'ഞ', 'ട', 'ഠ', 'ഡ', 'ഢ', 'ണ', 'ത', 'ഥ', 'ദ', 'ധ', 'ന', 'പ', 'ഫ', 'ബ', 'ഭ', 'മ', 'യ', 'ര', 'ല', 'വ', 'ശ', 'ഷ', 'സ', 'ഹ', 'ള', 'ഴ', 'റ']);
+const VOWEL_SIGNS = new Set(['ാ', 'ി', 'ീ', 'ു', 'ൂ', 'ൃ', 'െ', 'േ', 'ൈ', 'ൊ', 'ോ', 'ൗ', 'ൌ']);
+const VIRAMA = '്';
+
 const slugify = (text) => {
-    return text
-        .toLowerCase()
-        .trim()
-        .replace(/[^a-z0-9\s-]/g, '')
-        .replace(/[\s-]+/g, '-');
+    if (!text) return '';
+    const normalized = text.toString().toLowerCase();
+    let result = '';
+    
+    for (let i = 0; i < normalized.length; i++) {
+        const char = normalized[i];
+        const nextChar = normalized[i + 1];
+        if (CONSONANTS.has(char)) {
+            const baseConsonant = MALAYALAM_MAP[char];
+            if (nextChar === VIRAMA) {
+                result += baseConsonant.slice(0, -1);
+                i++; continue;
+            }
+            if (VOWEL_SIGNS.has(nextChar)) {
+                result += baseConsonant.slice(0, -1) + MALAYALAM_MAP[nextChar];
+                i++; continue;
+            }
+            result += baseConsonant;
+        } else if (MALAYALAM_MAP[char] !== undefined) {
+            result += MALAYALAM_MAP[char];
+        } else {
+            result += char;
+        }
+    }
+    return result.trim().replace(/\s+/g, '-').replace(/[^\w\-]+/g, '').replace(/\-\-+/g, '-').replace(/^-+|-+$/g, '');
 };
 
 export const EditAuthorForm = ({ authorId, onAuthorUpdated, onCancel }) => {
@@ -32,23 +75,30 @@ export const EditAuthorForm = ({ authorId, onAuthorUpdated, onCancel }) => {
             setLoading(true);
             setError('');
             try {
-                const res = await fetch(`/api/admin/authors?id=${authorId}`, { 
+                // Fetch the list of authors
+                const res = await fetch(`/api/admin/authors`, { 
                     headers: { 'x-api-key': API_KEY_TO_SEND },
                 });
                 
-                if (!res.ok) {
-                    throw new Error(`Failed to fetch author data (Status: ${res.status})`);
+                if (!res.ok) throw new Error(`Status: ${res.status}`);
+                
+                const jsonData = await res.json();
+                
+                // FIX: API returns { data: [...] }, so we extract the array
+                const authorsList = jsonData.data || [];
+                
+                // Find the specific author from the list
+                const author = authorsList.find(a => a._id === authorId);
+
+                if (author) {
+                    setFormData(author);
+                } else {
+                    setError('Author not found.');
                 }
-                
-                const data = await res.json();
-                
-                // Assuming the backend returns the full author object
-                // If the backend returns an array of one item, use data[0]
-                setFormData(data.length ? data[0] : data); 
 
             } catch (err) {
                 console.error('Fetch Author Data Error:', err.message);
-                setError(err.message || 'Could not load author details.');
+                setError('Could not load author details.');
             } finally {
                 setLoading(false);
             }
@@ -62,18 +112,15 @@ export const EditAuthorForm = ({ authorId, onAuthorUpdated, onCancel }) => {
         const { name, value } = e.target;
         setFormData(prev => {
             const newState = { ...prev, [name]: value };
-
-            // Optional: Automatically update slug if name is changed
             if (name === 'name') {
                 newState.slug = slugify(value);
             }
-
             return newState;
         });
         setError('');
     };
 
-    // 2. Handle PUT request for update
+    // 2. Handle PUT request
     const handleSubmit = async (e) => {
         e.preventDefault();
         setSubmitting(true);
@@ -98,21 +145,20 @@ export const EditAuthorForm = ({ authorId, onAuthorUpdated, onCancel }) => {
             const result = await res.json();
 
             if (!res.ok) {
-                throw new Error(result.message || `Failed to update author (Status: ${res.status})`);
+                throw new Error(result.message || 'Failed to update author');
             }
 
-            // Success! Call the parent handler to update the table data and close the modal
             onAuthorUpdated(result); 
 
         } catch (err) {
             console.error('Update Author Error:', err.message);
-            setError(err.message || 'An unknown error occurred during submission.');
+            setError(err.message);
         } finally {
             setSubmitting(false);
         }
     };
     
-    // UI rendering based on state
+    // UI rendering
     if (loading) {
         return (
             <div className="p-8 flex justify-center items-center text-gray-500">
@@ -122,24 +168,17 @@ export const EditAuthorForm = ({ authorId, onAuthorUpdated, onCancel }) => {
     }
 
     if (error && !formData) {
-        return (
-            <div className="p-8 text-sm text-red-700">
-                Error: {error}
-            </div>
-        );
+        return <div className="p-8 text-sm text-red-700">Error: {error}</div>;
     }
     
-    // Main form render
     return (
         <form onSubmit={handleSubmit} className="p-4 space-y-4">
-            {/* Display error message */}
             {error && (
                 <div className="p-3 text-sm text-red-700 bg-red-100 border border-red-300 rounded">
                     {error}
                 </div>
             )}
 
-            {/* Name */}
             <div>
                 <label htmlFor="name" className="block text-sm font-medium text-gray-700">
                     Author Name <span className="text-red-500">*</span>
@@ -151,11 +190,10 @@ export const EditAuthorForm = ({ authorId, onAuthorUpdated, onCancel }) => {
                     value={formData?.name || ''}
                     onChange={handleChange}
                     required
-                    className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm p-2 focus:border-red-500 focus:ring-red-500 text-sm"
+                    className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm p-2 text-sm"
                 />
             </div>
 
-            {/* Email */}
             <div>
                 <label htmlFor="email" className="block text-sm font-medium text-gray-700">
                     Email <span className="text-red-500">*</span>
@@ -167,11 +205,10 @@ export const EditAuthorForm = ({ authorId, onAuthorUpdated, onCancel }) => {
                     value={formData?.email || ''}
                     onChange={handleChange}
                     required
-                    className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm p-2 focus:border-red-500 focus:ring-red-500 text-sm"
+                    className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm p-2 text-sm"
                 />
             </div>
 
-            {/* Slug */}
             <div>
                 <label htmlFor="slug" className="block text-sm font-medium text-gray-700">
                     Slug <span className="text-red-500">*</span>
@@ -183,11 +220,10 @@ export const EditAuthorForm = ({ authorId, onAuthorUpdated, onCancel }) => {
                     value={formData?.slug || ''}
                     onChange={handleChange}
                     required
-                    className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm p-2 focus:border-red-500 focus:ring-red-500 text-sm bg-gray-50"
+                    className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm p-2 text-sm bg-gray-50"
                 />
             </div>
             
-            {/* Phone */}
             <div>
                 <label htmlFor="phone" className="block text-sm font-medium text-gray-700">Phone</label>
                 <input
@@ -196,11 +232,10 @@ export const EditAuthorForm = ({ authorId, onAuthorUpdated, onCancel }) => {
                     name="phone"
                     value={formData?.phone || ''}
                     onChange={handleChange}
-                    className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm p-2 focus:border-red-500 focus:ring-red-500 text-sm"
+                    className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm p-2 text-sm"
                 />
             </div>
             
-            {/* Biography */}
             <div>
                 <label htmlFor="biography" className="block text-sm font-medium text-gray-700">Biography</label>
                 <textarea
@@ -209,31 +244,25 @@ export const EditAuthorForm = ({ authorId, onAuthorUpdated, onCancel }) => {
                     value={formData?.biography || ''}
                     onChange={handleChange}
                     rows="3"
-                    className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm p-2 focus:border-red-500 focus:ring-red-500 text-sm"
+                    className="mt-1 block w-full rounded-md border border-gray-300 shadow-sm p-2 text-sm"
                 />
             </div>
 
-            {/* Actions */}
             <div className="flex justify-end space-x-3 pt-2">
                 <button
                     type="button"
                     onClick={onCancel}
                     disabled={submitting}
-                    className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 border border-gray-300 rounded-md shadow-sm hover:bg-gray-300 transition-colors"
+                    className="flex items-center px-4 py-2 text-sm font-medium text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300"
                 >
-                    <X className="w-4 h-4 mr-1" />
-                    Cancel
+                    <X className="w-4 h-4 mr-1" /> Cancel
                 </button>
                 <button
                     type="submit"
                     disabled={submitting}
-                    className="flex items-center px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md shadow-sm hover:bg-green-700 transition-colors disabled:opacity-50"
+                    className="flex items-center px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-md hover:bg-green-700 disabled:opacity-50"
                 >
-                    {submitting ? (
-                        <LoaderCircle className="w-4 h-4 mr-2 animate-spin" />
-                    ) : (
-                        <Save className="w-4 h-4 mr-2" />
-                    )}
+                    {submitting ? <LoaderCircle className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
                     {submitting ? 'Updating...' : 'Save Changes'}
                 </button>
             </div>

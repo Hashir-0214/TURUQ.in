@@ -8,14 +8,9 @@ import { PlusCircle, Edit, Eye, Trash2 } from "lucide-react";
 import Table from "@/components/admin/ui/Table";
 import Modal from "@/components/admin/ui/modal/Modal";
 import AddPostForm from "@/components/admin/posts/AddPostForm";
-// IMPORT NEW COMPONENT
 import EditPostForm from "@/components/admin/posts/EditPostForm"; 
 
-/* ------------------------------------------------------------------ */
-/* API helpers                                                       */
-/* ------------------------------------------------------------------ */
 const API_KEY_TO_SEND = process.env.NEXT_PUBLIC_API_KEY;
-// Removed addNotification parameter since it wasn't defined/used in the original context
 const fetchPosts = async () => {
 
   if (!API_KEY_TO_SEND) {
