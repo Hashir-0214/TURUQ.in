@@ -1,6 +1,8 @@
 // src/lib/article-service.js
 import dbConnect from "@/mongodb";
 import Post from "@/models/Post";
+import "@/models/Author"; 
+import "@/models/SubCategory";
 
 // --- HELPER FUNCTIONS ---
 const formatDate = (dateString) => {
@@ -18,6 +20,7 @@ const mapArticleData = (article) => {
   const dateString = rawDate ? rawDate : new Date();
 
   let authorName = 'Anonymous Writer';
+  // detailed check to ensure author_id is populated and valid
   if (article.author_id && article.author_id.name) {
     authorName = article.author_id.name;
   }
@@ -59,8 +62,8 @@ export async function getHomeData() {
     // Fetch all published posts
     const posts = await Post.find({ status: 'published' })
       .sort({ created_at: -1 })
-      .populate('author_id')
-      .populate('subcategory_ids')
+      .populate('author_id')        // Requires 'Author' model to be registered
+      .populate('subcategory_ids')  // Requires 'SubCategory' model to be registered
       .lean()
       .exec();
 
