@@ -4,6 +4,7 @@ import Tag from "@/components/ui/tag";
 import { getArticle } from "@/lib/mongodb";
 import { VscLiveShare } from "react-icons/vsc";
 import { notFound } from "next/navigation";
+import Image from "next/image";
 
 /* ----------  STATIC META  ---------- */
 export async function generateMetadata({ params }) {
@@ -45,9 +46,11 @@ export default async function ArticlePage({ params }) {
     <main className="mt-36 px-4">
       {/* FEATURED IMAGE */}
       <section className="flex flex-col items-center max-w-[1250px] h-auto mx-auto border border-black rounded-[20px] p-5 mb-10 overflow-hidden">
-        <img
+        <Image
           src={article.featured_image || "https://placeholder.com/1200x540"}
           alt={article.title || "Featured article image"}
+          width={1200}
+          height={540}
           className="w-full h-[540px] object-cover rounded-[20px]"
         />
       </section>
@@ -61,12 +64,14 @@ export default async function ArticlePage({ params }) {
             </div>
 
             <div className="relative inline-block mb-4">
-              <img
+              <Image
                 src={
                   author.avatar ||
                   "https://cdn.builder.io/api/v1/image/assets/TEMP/9bb4988949e5939edbdc39fb1f4c712bf3b7921a?width=598"
                 }
                 alt={author.name || "Author"}
+                width={140}
+                height={140}
                 className="w-28 h-28 rounded-full object-cover border-4 border-black shadow-md"
               />
               <div className="absolute inset-0 rounded-full bg-gradient-to-br from-transparent to-black/10"></div>
@@ -142,9 +147,11 @@ export default async function ArticlePage({ params }) {
 
           {/* Existing comment (static for now, should be fetched later) */}
           <div className="flex gap-6 mb-10">
-            <img
+            <Image
               src="https://cdn.builder.io/api/v1/image/assets/TEMP/b813f7ec7409329087b6b428d302c89a813063f6?width=440"
               alt="avatar"
+              width={96}
+              height={96}
               className="w-24 h-24 rounded-full object-cover"
             />
             <div>

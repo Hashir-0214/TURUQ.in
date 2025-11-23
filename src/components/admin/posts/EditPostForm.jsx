@@ -6,6 +6,7 @@ import { Save, X, Loader2, Upload, RotateCw } from "lucide-react";
 // Assuming these imports exist in the user's project structure
 import Select from "@/components/ui/select/Select";
 import RichTextEditor from "../ui/text-editor/TextEditor";
+import Image from "next/image";
 
 // --- START: Copied and adapted helper functions from AddPostForm.jsx ---
 
@@ -458,9 +459,11 @@ export default function EditPostForm({ postId, onPostUpdated, onCancel }) {
         {/* Display Current or Preview Image */}
         {imagePreviewUrl && (
           <div className="relative w-full max-w-sm h-40 overflow-hidden rounded-lg shadow-md">
-            <img
+            <Image
               src={imagePreviewUrl}
               alt="Featured Preview"
+              height={300}
+              width={400}
               className="w-full h-full object-cover"
             />
             <button

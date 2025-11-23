@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Save, X, Loader2, Upload } from "lucide-react";
 import Select from "@/components/ui/select/Select";
 import RichTextEditor from "../ui/text-editor/TextEditor";
+import Image from "next/image";
 
 const MALAYALAM_MAP = {
   // Vowels (independent)
@@ -497,9 +498,11 @@ export default function AddPostForm({ onPostAdded, onCancel }) {
         {/* Display Current or Preview Image */}
         {imagePreviewUrl && (
           <div className="relative w-full max-w-sm h-40 overflow-hidden rounded-lg shadow-md">
-            <img
+            <Image
               src={imagePreviewUrl}
               alt="Featured Preview"
+              height={100}
+              width={100}
               className="w-full h-full object-cover"
             />
             <button

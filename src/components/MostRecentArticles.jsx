@@ -82,9 +82,11 @@ export default function MostRecentArticles({ articles }) {
           >
             {/* Image - Use article.imageSrc directly */}
             <div className="side-article-image w-full sm:w-[180px] flex-shrink-0 rounded-xl overflow-hidden aspect-square sm:aspect-auto">
-              <img
+              <Image
                 src={article.imageSrc} 
                 alt={article.titleMalayalam}
+                width={180}
+                height={180}
                 className="h-[180px] w-full object-cover transition-transform sm:h-auto sm:aspect-square"
                 style={{ width: '100%', height: '180px', objectFit: 'cover' }}
                 onError={(e) => { e.currentTarget.src = 'https://placehold.co/300x300/ccc/333?text=Image+Load+Error'; }}
