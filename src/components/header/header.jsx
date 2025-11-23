@@ -83,7 +83,7 @@ export default function Header() {
           {/* Logo - Centered and Responsive */}
           <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 cursor-pointer">
             <Link href="/" onClick={closeOverlays}>
-              <h1 className="text-2xl sm:text-3xl lg:text-4xl text-red-600 m-0 font-oswald whitespace-nowrap">
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl text-red-600 m-0 font-oswald font-semibold whitespace-nowrap">
                 TURUQ
               </h1>
             </Link>

@@ -1,25 +1,25 @@
 "use client";
 
-import Footer from '@/components/footer/footer';
-import Header from '@/components/header/header';
-import './globals.css';
-import { usePathname } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import Footer from "@/components/footer/footer";
+import Header from "@/components/header/header";
+import "./globals.css";
+import { usePathname } from "next/navigation";
+import { useState, useEffect } from "react";
 
-import { SpeedInsights } from "@vercel/speed-insights/next"
-import { Analytics } from "@vercel/analytics/next"
+import { SpeedInsights } from "@vercel/speed-insights/next";
+import { Analytics } from "@vercel/analytics/next";
 
 export default function RootLayout({ children }) {
   const [loading, setLoading] = useState(false);
   const pathname = usePathname();
 
-  const isAdmin = pathname.startsWith('/admin');
-  const loginPage = pathname === '/admin/login';
-  const registerPage = pathname === '/admin/register';
+  const isAdmin = pathname.startsWith("/admin");
+  const loginPage = pathname === "/admin/login";
+  const registerPage = pathname === "/admin/register";
 
   useEffect(() => {
     setLoading(true);
-    
+
     const timer = setTimeout(() => {
       setLoading(false);
     }, 300);
@@ -29,6 +29,19 @@ export default function RootLayout({ children }) {
 
   return (
     <html lang="en">
+      <head>
+        <title>TURUQ | Webzine</title>
+        <meta
+          name="description"
+          content="TURUQ is a platform dedicated to fostering thoughtful discourse on culture, art, and society."
+        />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link rel="icon" href="/favicon.ico" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Oswald:wght@200..700&display=swap"
+          rel="stylesheet"
+        />
+      </head>
       <body suppressHydrationWarning>
         {/* Loading Overlay */}
         {loading && (
@@ -41,7 +54,9 @@ export default function RootLayout({ children }) {
         )}
 
         {!isAdmin && !loginPage && !registerPage && <Header />}
-        <div className={loading ? 'opacity-50 pointer-events-none' : 'opacity-100'}>
+        <div
+          className={loading ? "opacity-50 pointer-events-none" : "opacity-100"}
+        >
           {children}
         </div>
         {!isAdmin && !loginPage && !registerPage && <Footer />}
