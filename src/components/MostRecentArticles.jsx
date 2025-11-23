@@ -39,7 +39,7 @@ export default function MostRecentArticles({ articles }) {
           </div>
 
           {/* Content */}
-          <div className="w-full h-full flex flex-col justify-between">
+          <div className="w-full h-[50%] flex flex-col justify-between">
             
             {/* Tags */}
             <div className="flex gap-2 mb-2 flex-wrap">
