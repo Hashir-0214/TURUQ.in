@@ -4,8 +4,8 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Menu, Search, X } from 'lucide-react';
-import CategoryOverlay from '@components/header/CategoryOverlay';
-import SearchOverlay from '@components/header/searchOverlay';
+import CategoryOverlay from './categoryOverlay';
+import SearchOverlay from './searchOverlay';
 
 
 export default function Header() {
@@ -45,31 +45,34 @@ export default function Header() {
 
   return (
     <>
-      <header className='fixed top-0 left-0 w-full z-50 bg-[#ffedd9]'>
-        {/* Added backdrop-blur for a subtle modern effect */}
-        <div className="max-w-7xl h-[70px] mx-auto rounded-[50px] border border-black flex items-center justify-between px-6 sm:px-10 mt-[60px] relative bg-[#ffedd9]">
-          <nav className="flex items-center gap-6">
+      <header className='fixed top-0 left-0 right-0 z-50 bg-[#ffedd9]'>
+        <div className="max-w-7xl w-[90%] sm:w-[85%] lg:w-[83%] h-[60px] sm:h-[70px] mx-auto rounded-[30px] sm:rounded-[50px] border border-black flex items-center justify-between px-4 sm:px-6 lg:px-10 mt-[20px] sm:mt-[40px] lg:mt-[60px] relative bg-[#ffedd9]">
+          <nav className="flex items-center gap-3 sm:gap-4 lg:gap-6">
             {/* Hamburger/Close Button */}
             <div
-              className={`hamburger-menu rounded-full p-2 cursor-pointer border border-black transition-transform duration-300 ease-in-out ${
+              className={`hamburger-menu rounded-full p-1.5 sm:p-2 cursor-pointer border border-black transition-transform duration-300 ease-in-out ${
                 isMenuOpen ? 'bg-red-600 rotate-90' : 'bg-black hover:bg-red-600'
               }`}
               onClick={toggleMenu}
             >
-              {isMenuOpen ? <X size={22} color="#fff" /> : <Menu size={22} color="#fff" />}
+              {isMenuOpen ? (
+                <X size={18} className="sm:w-[22px] sm:h-[22px]" color="#fff" />
+              ) : (
+                <Menu size={18} className="sm:w-[22px] sm:h-[22px]" color="#fff" />
+              )}
             </div>
-            {/* Nav Links */}
+            {/* Nav Links - Hidden on mobile/tablet */}
             <div className="hidden lg:flex gap-6">
               <Link
                 href="/"
-                className="font-sans text-lg font-medium text-black transition-colors hover:text-red-600 no-underline"
+                className="font-sans text-base lg:text-lg font-medium text-black transition-colors hover:text-red-600 no-underline whitespace-nowrap"
                 onClick={closeOverlays}
               >
                 WEBZINE
               </Link>
               <Link
                 href="/archives"
-                className="font-sans text-lg font-medium text-black transition-colors hover:text-red-600 no-underline"
+                className="font-sans text-base lg:text-lg font-medium text-black transition-colors hover:text-red-600 no-underline whitespace-nowrap"
                 onClick={closeOverlays}
               >
                 ARCHIVE
@@ -77,24 +80,28 @@ export default function Header() {
             </div>
           </nav>
 
+          {/* Logo - Centered and Responsive */}
           <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 cursor-pointer">
             <Link href="/" onClick={closeOverlays}>
-              <h1 className="font-medium text-4xl text-red-600 m-0 font-oswald">TURUQ</h1>
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl text-red-600 m-0 font-oswald whitespace-nowrap">
+                TURUQ
+              </h1>
             </Link>
           </div>
 
-          <nav className="flex items-center gap-6">
+          <nav className="flex items-center gap-3 sm:gap-4 lg:gap-6">
+            {/* Nav Links - Hidden on mobile/tablet */}
             <div className="hidden lg:flex gap-6">
               <Link
                 href="/about"
-                className="font-sans text-lg font-medium text-black transition-colors hover:text-red-600 no-underline"
+                className="font-sans text-base lg:text-lg font-medium text-black transition-colors hover:text-red-600 no-underline whitespace-nowrap"
                 onClick={closeOverlays}
               >
                 ABOUT
               </Link>
               <Link
                 href="/subscribe"
-                className="font-sans text-lg font-medium text-black transition-colors hover:text-red-600 no-underline"
+                className="font-sans text-base lg:text-lg font-medium text-black transition-colors hover:text-red-600 no-underline whitespace-nowrap"
                 onClick={closeOverlays}
               >
                 SUBSCRIBE
@@ -102,12 +109,16 @@ export default function Header() {
             </div>
             {/* Search Button/Close Button */}
             <div
-              className={`search-icon cursor-pointer rounded-full p-2 transition-colors border border-black ${
+              className={`search-icon cursor-pointer rounded-full p-1.5 sm:p-2 transition-colors border border-black ${
                 isSearchOpen ? 'bg-black' : 'bg-white hover:bg-gray-200'
               }`}
               onClick={toggleSearch}
             >
-              {isSearchOpen ? <X className="w-6 h-6 text-white" /> : <Search className="w-6 h-6" />}
+              {isSearchOpen ? (
+                <X className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+              ) : (
+                <Search className="w-5 h-5 sm:w-6 sm:h-6" />
+              )}
             </div>
           </nav>
         </div>
@@ -119,8 +130,8 @@ export default function Header() {
       {/* Search Overlay Component */}
       <SearchOverlay isOpen={isSearchOpen} onClose={closeOverlays} />
       
-      {/* Adds necessary padding so content doesn't hide behind the fixed header */}
-      <div className="pt-[140px] w-full"></div>
+      {/* Adds necessary padding so content doesn't hide behind the fixed header - Responsive */}
+      <div className="pt-[100px] sm:pt-[130px] lg:pt-[140px] w-full"></div>
     </>
   );
 }

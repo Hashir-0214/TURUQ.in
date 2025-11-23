@@ -2,22 +2,9 @@
 
 import Footer from '@/components/footer/footer';
 import Header from '@/components/header/header';
-import { Poppins, Oswald } from 'next/font/google';
 import './globals.css';
 import { usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
-
-const poppins = Poppins({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
-  variable: '--font-poppins',
-});
-
-const oswald = Oswald({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
-  variable: '--font-oswald',
-});
 
 export default function RootLayout({ children }) {
   const [loading, setLoading] = useState(false);
@@ -38,7 +25,7 @@ export default function RootLayout({ children }) {
   }, [pathname]);
 
   return (
-    <html lang="en" className={`${poppins.variable} ${oswald.variable}`}>
+    <html lang="en">
       <body suppressHydrationWarning>
         {/* Loading Overlay */}
         {loading && (

@@ -14,7 +14,7 @@ const featuredSlides = [
         titleMalayalam: 'മാംഗ: ജാപ്പനീസ് കലാമണ്ഡലത്തിൽ ഇസ്ലാമിന്റെ ഇടം',
         slug: 'manga-islam-in-japanese-art',
         descriptionMalayalam: 'നാം നേരിടുന്ന എപിസ്റ്റമിക് കോളനിവൽക്കരണത്തിൻ്റെ അനന്തരഫലമെന്നോണം തന്നെ അക്കാദമിക ഗവേഷണതലങ്ങളിൽ സംഭവിക്കുന്നു. നാം നേരിടുന്ന എപിസ്റ്റമിക് കോളനിവൽക്കരണത്തിൻ്റെ',
-        imageSrc: 'https://res.cloudinary.com/dgoz15sps/image/upload/v1762102011/turuq/fzxluar5cn16be4a6afd.webp',
+        imageSrc: 'https://res.cloudinary.com/dgoz15sps/image/upload/v1762400012/turuq/diwszga98wvvx6ovl0f7.webp',
         categories: [
             { name: 'UNITED', link: '/category/united' },
             { name: 'ARCHITECTURE', link: '/category/architecture' },
@@ -27,7 +27,7 @@ const featuredSlides = [
         article_id: null, 
         custom_titleMalayalam: 'ഇരുളടഞ്ഞ ഇടനാഴികളിലെ വിപ്ലവകാരി',
         custom_descriptionMalayalam: 'ഇരുളടഞ്ഞ ചരിത്രത്തിൻ്റെ ഇടനാഴികളിൽ ഒരു വിപ്ലവകാരിയുടെ ഉയിർത്തെഴുന്നേറ്റ കഥയാണിത്. (കസ്റ്റം ബാനർ ടെക്സ്റ്റ്)',
-        image_link: 'https://res.cloudinary.com/dgoz15sps/image/upload/v1762102011/turuq/fzxluar5cn16be4a6afd.webp',
+        image_link: 'https://res.cloudinary.com/dgoz15sps/image/upload/v1762400012/turuq/diwszga98wvvx6ovl0f7.webp',
         redirection_link: '/article/malcom-x-space-travel',
         categories: [{ name: 'PROMO', link: '/promo' }],
         author: 'വെബ്സിൻ എഡിറ്റർ',
