@@ -5,42 +5,20 @@ import SectionHeader from '@/components/reusable/SectionHeader';
 import ArchiveSection from '@/components/ArchiveSection';
 import FeaturedArticles from '@/components/FeaturedArticles';
 import HeroSection from '@/components/HeroSection';
+import { getHomeData } from './lib/article-service';
 
-// Helper to get the correct URL in Dev and Prod
-const getBaseUrl = () => {
-  if (process.env.NEXT_PUBLIC_SITE_URL) return process.env.NEXT_PUBLIC_SITE_URL;
-  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
-  return 'http://localhost:3000';
-};
-
-async function fetchHomeData() {
-  const baseUrl = getBaseUrl();
-  try {
-    // We use { cache: 'no-store' } ensures we always get fresh data. 
-    // Change to { next: { revalidate: 60 } } to cache for 60 seconds if you want speed.
-    const res = await fetch(`${baseUrl}/api/home`, { cache: 'no-store' });
-    
-    if (!res.ok) {
-      throw new Error('Failed to fetch home data');
-    }
-    
-    return res.json();
-  } catch (error) {
-    console.error("Home Page Fetch Error:", error);
-    return { featuredArticles: [], mostRecentArticles: [] };
-  }
-}
+export const dynamic = 'force-dynamic'; // Optional: Ensures data is fresh on every refresh
 
 export default async function Home() {
-  const { featuredArticles, mostRecentArticles } = await fetchHomeData();
+  // Call the database logic directly (No HTTP Fetch)
+  const { featuredArticles, mostRecentArticles } = await getHomeData();
 
-  // Fallback UI if API fails completely
   if (!featuredArticles.length && !mostRecentArticles.length) {
     return (
       <main className="flex justify-center items-center h-screen bg-[#ffedd9]">
         <div className="text-center">
            <p className="text-2xl text-red-600 mb-2">Unable to load articles.</p>
-           <p className="text-gray-500">Please check your connection or try again later.</p>
+           <p className="text-gray-500">Please try refreshing the page.</p>
         </div>
       </main>
     );
