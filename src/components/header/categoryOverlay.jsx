@@ -2,7 +2,7 @@
 "use client";
 
 import { useState } from "react";
-import ArticleGridCard from "@components/reusable/ArticleGridCard";
+import ArticleGridCard from "../reusable/ArticleGridCard";
 
 const categories = [
   { name: "FICTION", slug: "fiction" },
