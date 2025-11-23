@@ -7,8 +7,6 @@ import SectionHeader from '@/components/reusable/SectionHeader';
 import ArchiveSection from '@/components/ArchiveSection';
 import FeaturedArticles from '@/components/FeaturedArticles';
 import HeroSection from '@/components/HeroSection';
-import { SpeedInsights } from "@vercel/speed-insights/next"
-import { Analytics } from "@vercel/analytics/next"
 
 export default async function Home() {
 
