@@ -1,0 +1,102 @@
+import { NextResponse } from "next/server";
+import dbConnect from "@/mongodb";
+import Post from "@/models/Post";
+
+// --- HELPER FUNCTIONS (Moved from data.js) ---
+const formatDate = (dateString) => {
+  const dateObj = new Date(dateString);
+  if (isNaN(dateObj.getTime())) return "Unknown Date";
+  const day = String(dateObj.getDate()).padStart(2, "0");
+  const year = dateObj.getFullYear();
+  const monthNames = [
+    "JAN",
+    "FEB",
+    "MAR",
+    "APR",
+    "MAY",
+    "JUN",
+    "JUL",
+    "AUG",
+    "SEP",
+    "OCT",
+    "NOV",
+    "DEC",
+  ];
+  const formattedMonth = monthNames[dateObj.getMonth()];
+  return `${day} ${formattedMonth} ${year}`.toUpperCase();
+};
+
+const mapArticleData = (article) => {
+  const rawDate = article.created_at || article.created_at?.$date;
+  const dateString = rawDate ? rawDate : new Date();
+
+  let authorName = "Anonymous Writer";
+  if (article.author_id && article.author_id.name) {
+    authorName = article.author_id.name;
+  }
+
+  let categories = [];
+  if (Array.isArray(article.subcategory_ids)) {
+    categories = article.subcategory_ids
+      .filter((subcat) => subcat && subcat.name && subcat.slug)
+      .map((subcat) => ({
+        name: subcat.name,
+        link: `/category/${subcat.slug}`,
+      }))
+      .slice(0, 2);
+  }
+
+  if (categories.length === 0) {
+    categories.push({ name: "GENERAL", link: "/category/general" });
+  }
+
+  return {
+    id: article._id.toString(),
+    is_featured: article.permissions?.is_featured || false,
+    titleMalayalam: article.title || "Untitled Article",
+    slug: article.slug,
+    descriptionMalayalam:
+      article.excerpt ||
+      (article.content
+        ? article.content.replace(/<[^>]*>/g, "").substring(0, 150) + "..."
+        : "No description available."),
+    imageSrc:
+      article.featured_image ||
+      "https://placehold.co/1200x675/ccc/333?text=Image+Missing",
+    categories: categories,
+    author: authorName,
+    date: formatDate(dateString),
+    timestamp: new Date(dateString).getTime(),
+  };
+};
+
+// --- THE API HANDLER ---
+export async function GET() {
+  try {
+    await dbConnect();
+
+    // Fetch all published posts
+    const posts = await Post.find({ status: "published" })
+      .sort({ created_at: -1 })
+      .populate("author_id")
+      .populate("subcategory_ids")
+      .lean()
+      .exec();
+
+    // Process the data
+    const allMappedArticles = posts.map((article) => mapArticleData(article));
+
+    // Separate Featured and Recent
+    // Note: You might want to limit 'Recent' to 10 or 20 items to keep the payload small
+    const featuredArticles = allMappedArticles
+      .filter((a) => a.is_featured)
+      .slice(0, 4);
+
+    const mostRecentArticles = allMappedArticles.slice(0, 12); // Limit to 12 recent posts
+
+    return NextResponse.json({ featuredArticles, mostRecentArticles });
+  } catch (error) {
+    console.error("API Error /api/home:", error);
+    return NextResponse.json({ message: "Server Error" }, { status: 500 });
+  }
+}

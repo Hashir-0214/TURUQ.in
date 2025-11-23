@@ -1,3 +1,5 @@
+// src/app/api/admin/subcategories/route.js
+
 import SubCategory from "@/models/SubCategory";
 import { NextResponse } from "next/server";
 import dbConnect from '@/mongodb'; // Assuming you use dbConnect here too

@@ -2,8 +2,6 @@
 
 import { dbConnect } from "./mongodb";
 import Post from "@/models/Post";
-import User from "@/models/User";
-import SubCategory from "@/models/SubCategory";
 
 const formatDate = (dateString) => {
     const dateObj = new Date(dateString);

@@ -1,4 +1,4 @@
-// src/components/common/ArticleGridCard.jsx
+// src/components/reusable/ArticleGridCard.jsx
 
 import Tag from "../ui/tag";
 
