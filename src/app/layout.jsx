@@ -5,7 +5,6 @@ import Header from "@/components/header/header";
 import "./globals.css";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
-
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/next";
 
@@ -18,14 +17,15 @@ export default function RootLayout({ children }) {
   const registerPage = pathname === "/admin/register";
 
   useEffect(() => {
-    setLoading(true);
+    if (isAdmin) return; 
 
+    setLoading(true);
     const timer = setTimeout(() => {
       setLoading(false);
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [pathname]);
+  }, [pathname, isAdmin]);
 
   return (
     <html lang="en">
@@ -43,7 +43,7 @@ export default function RootLayout({ children }) {
         />
       </head>
       <body suppressHydrationWarning>
-        {/* Loading Overlay */}
+        {/* Loading Overlay - Only shows if loading is true (which is now prevented for Admin) */}
         {loading && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/80 backdrop-blur-sm">
             <div className="flex flex-col items-center gap-3">
@@ -54,11 +54,12 @@ export default function RootLayout({ children }) {
         )}
 
         {!isAdmin && !loginPage && !registerPage && <Header />}
-        <div
-          className={loading ? "opacity-50 pointer-events-none" : "opacity-100"}
-        >
+        
+        {/* Removed the opacity logic for Admin to prevent flickering */}
+        <div className={loading ? "opacity-50 pointer-events-none" : "opacity-100"}>
           {children}
         </div>
+
         {!isAdmin && !loginPage && !registerPage && <Footer />}
         <SpeedInsights />
         <Analytics />

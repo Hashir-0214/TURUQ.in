@@ -109,15 +109,15 @@ export default function Header() {
             </div>
             {/* Search Button/Close Button */}
             <div
-              className={`search-icon cursor-pointer rounded-full p-1.5 sm:p-2 transition-colors border border-black ${
-                isSearchOpen ? 'bg-black' : 'bg-white hover:bg-gray-200'
+              className={`search-icon bg-red-600 cursor-pointer rounded-full p-1.5 sm:p-2 transition-colors border border-black ${
+                isSearchOpen ? 'bg-red-700' : ''
               }`}
               onClick={toggleSearch}
             >
               {isSearchOpen ? (
                 <X className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               ) : (
-                <Search className="w-5 h-5 sm:w-6 sm:h-6" />
+                <Search className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               )}
             </div>
           </nav>

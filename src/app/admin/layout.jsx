@@ -3,23 +3,21 @@
 import Header from "@/components/admin/Header";
 import Sidebar from "@/components/admin/Sidebar";
 import { NotificationProvider } from "@/components/ui/notification/NotificationProvider";
-import { usePathname } from "next/navigation";
-import { useState, useEffect } from "react";
-import { LoaderCircle } from "lucide-react"; 
+import { usePathname, useRouter } from "next/navigation";
+import { useState, useEffect, useRef } from "react";
+import { LoaderCircle } from "lucide-react";
 
 export default function Layout({ children }) {
     const pathname = usePathname();
+    const router = useRouter();
     const [currentUser, setCurrentUser] = useState(null);
-    const [loading, setLoading] = useState(true);
-    
-    const loginPage = pathname === '/admin/login';
-    const registerPage = pathname === '/admin/register';
-    const authPage = loginPage || registerPage; 
+    const [isInitialLoading, setIsInitialLoading] = useState(true);
 
-    // Fetch current user data
+    const isAuthPage = pathname === '/admin/login' || pathname === '/admin/register';
+
     useEffect(() => {
-        if (authPage) { 
-            setLoading(false);
+        if (isAuthPage) {
+            setIsInitialLoading(false);
             return;
         }
 
@@ -30,25 +28,25 @@ export default function Layout({ children }) {
                     const userData = await response.json();
                     setCurrentUser(userData);
                 } else {
-                    if (!loginPage) {
-                        window.location.href = '/admin/login';
-                    }
+                    router.push('/admin/login');
                 }
             } catch (error) {
                 console.error('Failed to fetch current user:', error);
-                if (!loginPage) {
-                    window.location.href = '/admin/login';
-                }
+                router.push('/admin/login');
             } finally {
-                setLoading(false);
+                setIsInitialLoading(false);
             }
         };
 
-        fetchCurrentUser();
-    }, [authPage, loginPage]); 
+        if (!currentUser) {
+            fetchCurrentUser();
+        } else {
+            setIsInitialLoading(false);
+        }
+        
+    }, []);
 
-    // Show loading spinner while fetching user data
-    if (loading && !authPage) {
+    if (isInitialLoading && !isAuthPage) {
         return (
             <NotificationProvider>
                 <div className="flex bg-[#ffedd9] min-h-screen items-center justify-center">
@@ -60,23 +58,19 @@ export default function Layout({ children }) {
 
     return (
         <NotificationProvider>
-            {/* Use flex-col to stack Header (not shown) and content */}
             <div className="flex flex-col bg-[#ffedd9] min-h-screen">
-                {authPage ? (
+                {isAuthPage ? (
                     <div className="min-h-screen w-full">{children}</div>
                 ) : (
                     <>
                         <Header currentUser={currentUser} />
-                        {/* Content Wrapper: Uses a calculated height to reserve space above (150px) 
-                          and ensures the content container fills the rest of the viewport.
-                        */}
                         <div 
                             className="flex w-[90%] max-w-[1200px] mx-auto mt-[150px] gap-10"
-                            style={{ minHeight: 'calc(100vh - 150px)', paddingBottom: '3rem' }} 
+                            style={{ height: 'calc(100vh - 150px)' }} 
                         >
                             <Sidebar />
-                            {/* FIX: Added overflow-y-auto to main to enable scrolling for its content */}
-                            <main className="flex-1 p-6 overflow-y-auto">
+                            <main className="flex-1 p-6 overflow-y-auto pb-20 scrollbar-hide">
+                                {/* This is where the page content loads */}
                                 {children}
                             </main>
                         </div>

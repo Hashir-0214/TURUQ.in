@@ -8,14 +8,9 @@ import {
     MonitorPlay,
 } from 'lucide-react';
 
-// --- Placeholder Data & Components (Simulated PHP Includes) ---
-
-// Placeholder for the user data from getCurrentUser()
 const currentUser = {
-    name: 'Admin User', // Replace with actual user data logic in a real app
+    name: 'Admin User',
 };
-
-// --- Dashboard Component ---
 
 const DashboardPage = () => {
     return (

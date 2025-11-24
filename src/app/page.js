@@ -5,15 +5,15 @@ import SectionHeader from '@/components/reusable/SectionHeader';
 import ArchiveSection from '@/components/ArchiveSection';
 import FeaturedArticles from '@/components/FeaturedArticles';
 import HeroSection from '@/components/HeroSection';
-import { getHomeData } from './lib/article-service';
+import { getHomeData } from '@/lib/article-service';
 
-export const dynamic = 'force-dynamic'; // Optional: Ensures data is fresh on every refresh
+export const dynamic = 'force-dynamic'; 
 
 export default async function Home() {
-  // Call the database logic directly (No HTTP Fetch)
-  const { featuredArticles, mostRecentArticles } = await getHomeData();
+  // 1. Fetch heroArticles here
+  const { heroArticles, featuredArticles, mostRecentArticles } = await getHomeData();
 
-  if (!featuredArticles.length && !mostRecentArticles.length) {
+  if (!featuredArticles.length && !mostRecentArticles.length && !heroArticles.length) {
     return (
       <main className="flex justify-center items-center h-screen bg-[#ffedd9]">
         <div className="text-center">
@@ -26,9 +26,9 @@ export default async function Home() {
 
   return (
     <main className="mt-[20px] bg-[#ffedd9] w-full">
-      {/* Hero Section */}
+      {/* Hero Section - Pass the dynamic data */}
       <div>
-        <HeroSection />
+        <HeroSection articles={heroArticles} />
       </div>
 
       {/* Featured Articles Section */}

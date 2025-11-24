@@ -1,5 +1,4 @@
-// src/app/not-found.js
-
+// src/app/admin/not-found.js
 'use client'
 
 import Link from 'next/link'

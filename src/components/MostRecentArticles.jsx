@@ -9,7 +9,7 @@ export default function MostRecentArticles({ articles }) {
   if (!articles || articles.length === 0) {
     return (
       <div className="flex justify-center items-center h-48">
-        <p className="text-xl font-medium text-gray-500">No recent articles found.</p>
+        <p className="text-xl font-medium text-gray-500">No articles found.</p>
       </div>
     );
   }

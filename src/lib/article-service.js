@@ -42,7 +42,10 @@ const mapArticleData = (article) => {
 
   return {
     id: article._id.toString(),
+    // Capture permission flags
     is_featured: article.permissions?.is_featured || false,
+    is_slide: article.permissions?.is_slide_article || false, // <--- ADDED THIS
+    
     titleMalayalam: article.title || 'Untitled Article',
     slug: article.slug,
     descriptionMalayalam: article.excerpt || (article.content ? article.content.replace(/<[^>]*>/g, '').substring(0, 150) + '...' : 'No description available.'),
@@ -70,17 +73,21 @@ export async function getHomeData() {
     // Process the data
     const allMappedArticles = posts.map(article => mapArticleData(article));
 
+    // Filter specifically for the Hero Slider
+    const heroArticles = allMappedArticles
+        .filter(a => a.is_slide)
+        .slice(0, 5); // Limit to 5 slides
+
     const featuredArticles = allMappedArticles
         .filter(a => a.is_featured)
         .slice(0, 4);
 
     const mostRecentArticles = allMappedArticles.slice(0, 12);
 
-    return { featuredArticles, mostRecentArticles };
+    return { heroArticles, featuredArticles, mostRecentArticles };
 
   } catch (error) {
     console.error("Service Error in getHomeData:", error);
-    // Return empty arrays so the UI handles it gracefully
-    return { featuredArticles: [], mostRecentArticles: [] };
+    return { heroArticles: [], featuredArticles: [], mostRecentArticles: [] };
   }
 }
