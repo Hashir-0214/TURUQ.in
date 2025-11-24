@@ -4,6 +4,7 @@ import dbConnect from "@/mongodb";
 import Post from "@/models/Post";
 import Category from "@/models/Category";
 import SubCategory from "@/models/SubCategory";
+import Author from "@/models/Author"; // <--- ADD THIS IMPORT
 
 export async function GET(request) {
   await dbConnect();
@@ -14,23 +15,22 @@ export async function GET(request) {
 
   // QUERY BUILDER
   let query = {
-    status: "published" // IMPORTANT: Only show published posts to public!
+    status: "published" 
   };
 
   try {
-    // SCENARIO A: User clicked a Subcategory (e.g., "football")
+    // SCENARIO A: User clicked a Subcategory
     if (subCategorySlug) {
       const subCat = await SubCategory.findOne({ slug: subCategorySlug });
       
       if (!subCat) {
-        return NextResponse.json([]); // Subcategory doesn't exist
+        return NextResponse.json([]); 
       }
       
-      // Find posts where 'subcategory_ids' array contains this specific ID
       query.subcategory_ids = subCat._id;
     } 
     
-    // SCENARIO B: User clicked a Main Category (e.g., "sports")
+    // SCENARIO B: User clicked a Main Category
     else if (categorySlug) {
       const mainCat = await Category.findOne({ slug: categorySlug });
       
@@ -38,22 +38,19 @@ export async function GET(request) {
         return NextResponse.json([]);
       }
 
-      // 1. Find ALL subcategories that belong to this main category
       const childSubCategories = await SubCategory.find({ parent_id: mainCat._id });
-      
-      // 2. Get their IDs
       const childIds = childSubCategories.map(sub => sub._id);
 
-      // 3. Find posts that have ANY of these subcategory IDs
       query.subcategory_ids = { $in: childIds };
     }
 
-    // FETCH POSTS based on the query
+    // FETCH POSTS
+    // Now this will work because 'Author' is imported above
     const posts = await Post.find(query)
-      .populate("author_id", "name") // Get author name
-      .populate("subcategory_ids", "name slug") // Get subcat details
-      .sort({ created_at: -1 }) // Newest first
-      .limit(10); // Limit to 10 highlights
+      .populate("author_id", "name") 
+      .populate("subcategory_ids", "name slug") 
+      .sort({ created_at: -1 }) 
+      .limit(10); 
 
     return NextResponse.json(posts);
 
