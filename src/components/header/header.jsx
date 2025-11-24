@@ -50,8 +50,8 @@ export default function Header() {
           <nav className="flex items-center gap-3 sm:gap-4 lg:gap-6">
             {/* Hamburger/Close Button */}
             <div
-              className={`hamburger-menu rounded-full p-1.5 sm:p-2 cursor-pointer border border-black transition-transform duration-300 ease-in-out ${
-                isMenuOpen ? 'bg-red-600 rotate-90' : 'bg-black hover:bg-red-600'
+              className={`hamburger-menu bg-red-600 rounded-full p-1.5 sm:p-2 cursor-pointer border border-black transition-transform duration-300 ease-in-out ${
+                isMenuOpen ? 'rotate-90' : 'hover:bg-red-700'
               }`}
               onClick={toggleMenu}
             >

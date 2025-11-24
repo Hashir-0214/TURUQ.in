@@ -18,10 +18,7 @@ export default function CategoryOverlay({ isOpen, onClose }) {
   const [loading, setLoading] = useState(false);
   const [articlesLoading, setArticlesLoading] = useState(false);
 
-  // Use the key for Admin routes (Categories/Subcats), but not for Articles
-  const apiKey = process.env.NEXT_PUBLIC_API_KEY;
-
-  // --- 1. FETCH METADATA (FIXED: Now actually fetches Categories/Subcats) ---
+  // --- 1. FETCH METADATA ---
   useEffect(() => {
     if (isOpen) {
       const fetchMetaData = async () => {
@@ -55,7 +52,7 @@ export default function CategoryOverlay({ isOpen, onClose }) {
 
       fetchMetaData();
     }
-  }, [isOpen, apiKey]); // Removed activeCategorySlug to prevent reset loops
+  }, [isOpen]); 
 
   // --- 2. DERIVED STATE ---
   const activeCategory = categories.find((c) => c.slug === activeCategorySlug);
@@ -65,14 +62,13 @@ export default function CategoryOverlay({ isOpen, onClose }) {
     ? subCategories.filter((sub) => sub.parent_id === activeCategory._id)
     : [];
 
-  // --- 3. FETCH ARTICLES (FIXED: Uses the public /api/articles route) ---
+  // --- 3. FETCH ARTICLES ---
   useEffect(() => {
     const fetchArticles = async () => {
       if (!activeCategorySlug) return;
 
       setArticlesLoading(true);
       try {
-        // Use the PUBLIC route we created in the previous step
         let url = `/api/articles?`;
 
         if (activeSubCategorySlug) {
@@ -81,7 +77,6 @@ export default function CategoryOverlay({ isOpen, onClose }) {
           url += `category=${activeCategorySlug}`;
         }
 
-        // No API Key needed for the public articles route
         const res = await fetch(url);
 
         if (res.ok) {
@@ -104,7 +99,12 @@ export default function CategoryOverlay({ isOpen, onClose }) {
   }, [activeCategorySlug, activeSubCategorySlug, isOpen]);
 
   // --- HANDLERS ---
-  const handleCategoryClick = (slug) => {
+  
+  // UPDATED: Handles Hover (Desktop) and Click (Mobile)
+  const handleCategoryChange = (slug) => {
+    // Optimization: Don't trigger fetch if we are hovering the already active category
+    if (slug === activeCategorySlug) return;
+
     setActiveCategorySlug(slug);
     setActiveSubCategorySlug(null); // Reset subcategory when switching main tabs
   };
@@ -119,20 +119,21 @@ export default function CategoryOverlay({ isOpen, onClose }) {
     <div className="menu-overlay fixed inset-0 bg-[#ffedd9] z-40 pt-[150px] overflow-y-auto transition-opacity duration-300 ease-in-out">
       <div className="max-w-7xl mx-auto h-full px-4 sm:px-6 lg:px-8">
         <div className="flex h-full min-h-[calc(100vh-150px)] flex-col lg:flex-row">
+          
           {/* --- LEFT SIDEBAR: CATEGORIES --- */}
           <div className="w-full lg:w-1/4 pt-10 pb-4 lg:pb-10 lg:border-r border-gray-300 lg:pr-8">
-            <h4 className="font-sans text-xs uppercase text-gray-500 mb-6 tracking-widest">
-              Categories
-            </h4>
 
             {loading ? (
-              <p className="text-gray-400 animate-pulse">Loading...</p>
+              <p className="text-gray-400 animate-pulse">...</p>
             ) : (
               <nav className="flex flex-col flex-wrap lg:block gap-x-6">
                 {categories.map((cat) => (
                   <button
                     key={cat.slug}
-                    onClick={() => handleCategoryClick(cat.slug)}
+                    // UPDATED LOGIC HERE:
+                    onMouseEnter={() => handleCategoryChange(cat.slug)} 
+                    onClick={() => handleCategoryChange(cat.slug)}
+                    onFocus={() => handleCategoryChange(cat.slug)}
                     className={`text-left flex font-oswald uppercase text-xl lg:text-4xl mb-4 lg:mb-6 transition-colors focus:outline-none ${
                       cat.slug === activeCategorySlug
                         ? "text-red-600 font-bold"
@@ -149,6 +150,7 @@ export default function CategoryOverlay({ isOpen, onClose }) {
 
           {/* --- RIGHT AREA: SUBCATEGORIES & ARTICLES --- */}
           <div className="w-full lg:w-3/4 overflow-y-auto py-10 lg:pl-8">
+            
             {/* Subcategory Bar */}
             <div className="flex flex-wrap gap-3 items-center mb-6 border-b border-red-600 pb-3 min-h-[50px]">
               {currentSubCategories.length > 0 ? (
@@ -171,9 +173,7 @@ export default function CategoryOverlay({ isOpen, onClose }) {
                 ))
               ) : (
                 <span className="text-gray-400 text-sm italic">
-                  {activeCategory
-                    ? `Viewing ${activeCategory.name}`
-                    : "Select a category"}
+                  {activeCategory ? `Viewing ${activeCategory.name}` : ""}
                 </span>
               )}
             </div>
