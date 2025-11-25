@@ -262,11 +262,17 @@ export default function AddPostForm({ onPostAdded, onCancel }) {
           fetchAuthors(),
           fetchSubcategories(),
         ]);
-        setAuthors(authorsData || []);
-        setAllSubCats(subcategoriesData || []);
+
+        const authorsList = authorsData.data || authorsData;
+        const subCatsList = subcategoriesData.data || subcategoriesData;
+
+        setAuthors(Array.isArray(authorsList) ? authorsList : []);
+        setAllSubCats(Array.isArray(subCatsList) ? subCatsList : []);
       } catch (err) {
         console.error("Error loading data:", err);
         setError("Failed to load form data");
+        setAuthors([]);
+        setAllSubCats([]);
       }
     };
     loadData();

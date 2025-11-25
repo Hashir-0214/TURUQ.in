@@ -1,3 +1,4 @@
+// src/components/header/searchOverlay.jsx
 "use client";
 
 import { useState, useEffect } from "react";

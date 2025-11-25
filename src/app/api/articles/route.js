@@ -13,13 +13,11 @@ export async function GET(request) {
   const categorySlug = searchParams.get("category");
   const subCategorySlug = searchParams.get("subcategory");
 
-  // QUERY BUILDER
   let query = {
     status: "published" 
   };
 
   try {
-    // SCENARIO A: User clicked a Subcategory
     if (subCategorySlug) {
       const subCat = await SubCategory.findOne({ slug: subCategorySlug });
       
@@ -30,7 +28,6 @@ export async function GET(request) {
       query.subcategory_ids = subCat._id;
     } 
     
-    // SCENARIO B: User clicked a Main Category
     else if (categorySlug) {
       const mainCat = await Category.findOne({ slug: categorySlug });
       
@@ -44,8 +41,6 @@ export async function GET(request) {
       query.subcategory_ids = { $in: childIds };
     }
 
-    // FETCH POSTS
-    // Now this will work because 'Author' is imported above
     const posts = await Post.find(query)
       .populate("author_id", "name") 
       .populate("subcategory_ids", "name slug") 

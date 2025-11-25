@@ -1,82 +1,66 @@
 // src/components/reusable/ArticleGridCard.jsx
 
+import Link from "next/link";
+import Image from "next/image";
 import Tag from "../ui/tag";
 
-/**
- * Displays an article in the visual grid card style.
- * @param {object} props
- * @param {object} props.article 
- * @param {function} props.onClose 
- * @param {boolean} [props.isFeatured=false] 
- */
-export default function ArticleGridCard({
-  article,
-  onClose,
-  isFeatured = false,
-}) {
-  const mainCategory = article.category?.toUpperCase() || "GENERAL";
-  const subCategory = article.subcategory
-    ? article.subcategory.toUpperCase()
-    : null;
-
-  const imageHeightClass = isFeatured ? "h-60" : "h-60";
-
-  const cardLayoutClass = isFeatured
-    ? "flex-col sm:flex-row-reverse"
-    : "flex-col";
-
-  const imageWrapperClass = isFeatured ? "w-full sm:w-3/5" : "w-full";
+export default function ArticleGridCard({ article, onClose }) {
+  const subName = article.subcategory?.name?.toUpperCase();
+  const subLink = article.subcategory?.link;
 
   return (
-    <div
-      className={`rounded-2xl flex overflow-hidden bg-[#ffedd9] border border-gray-500 shadow-xl hover:shadow-2xl transition-shadow duration-300 ${cardLayoutClass}`}
-    >
-      {/* Article Image/Visual Link */}
-      <a href={article.link} onClick={onClose} className={`p-4 ${imageWrapperClass}`}>
-        <div
-          className={`w-full ${imageHeightClass} bg-cover bg-center rounded-2xl`}
-          style={{ backgroundImage: `url(${article.image})` }}
-          role="img"
-          aria-label={`Visual for ${article.title}`}
-        />
-      </a>
+    <div className="search-article-card rounded-2xl flex overflow-hidden bg-[#ffedd9] border border-gray-500 shadow-xl hover:shadow-2xl transition-shadow duration-300 p-6">
+      {/* Article Image */}
+      <Link
+        href={article.link || "#"}
+        onClick={onClose}
+        className="block relative"
+      >
+        <div className="w-full h-60 relative overflow-hidden rounded-2xl">
+          <Image
+            src={article.image}
+            alt={article.title || "Article Image"}
+            width={600}
+            height={400}
+            sizes="(max-width: 768px) 100vw, 50vw"
+            className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
+            onError={(e) => {
+              e.currentTarget.src =
+                "https://placehold.co/600x400/ccc/333?text=Image+Missing";
+            }}
+          />
+        </div>
+      </Link>
 
-      {/* Article Content */}
-      <div className="p-4 sm:p-6 flex-1 flex flex-col justify-between">
-        {/* Category Tags */}
-        <div className="flex gap-2 mb-3">
-          <Tag className="poppins-regular">
-            {mainCategory}
-          </Tag>
-          {subCategory && (
-            <Tag className="poppins-regular">
-              {subCategory}
+      {/* Content */}
+      <div className="px-4 sm:px-6 max-h-[240px] flex-1 flex flex-col justify-between">
+        <div className="flex items-center">
+          {/* Render Tag only if name exists */}
+          {subName && (
+            <Tag link={subLink} className="z-50 relative">
+              {subName}
             </Tag>
           )}
         </div>
 
-        {/* Article Title */}
-        <h3
-          className={`local-font-rachana font-bold mt-2 mb-3 cursor-pointer text-red-600 transition-colors line-clamp-2 ${
-            isFeatured ? "text-2xl sm:text-3xl" : "text-xl sm:text-2xl"
-          }`}
-        >
-          <a href={article.link} onClick={onClose}>
-            {article.title}
-          </a>
-        </h3>
+        <div>
+          <Link href={article.link || "#"} onClick={onClose}>
+            <h3 className="local-font-rachana font-bold text-[30px] cursor-pointer leading-[32px] mb-1 text-red-600 hover:text-red-700 transition-colors line-clamp-2">
+              {article.title}
+            </h3>
+          </Link>
 
-        {/* Author and Date */}
-        <div className="text-sm pt-2 border-t border-gray-100 mt-4 flex items-center gap-2">
-          {/* Author Name - Black, Semibold/Bold */}
+          {/* Clean Content Preview */}
+          <div className="local-font-rachana line-clamp-3 text-[20px] leading-[22px]">
+            {article.content}
+          </div>
+        </div>
+
+        <div className="text-sm pt-2 border-t border-gray-100 flex items-center gap-2">
           <span className="font-poppins font-semibold text-xs text-black">
             {article.author}
           </span>
-
-          {/* Divider | */}
           <span className="text-gray-400 font-semibold text-sm">|</span>
-
-          {/* Date - Gray, Semibold */}
           <span className="text-xs font-semibold text-gray-500">
             {article.date}
           </span>

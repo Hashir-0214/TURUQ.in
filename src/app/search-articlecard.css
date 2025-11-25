@@ -1,0 +1,22 @@
+/* src/app/search-articlecard.css */
+
+.search-article-card-container {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 2rem;
+}
+
+.search-article-card-container:nth-child(1) > .search-article-card {
+  margin-top: 0px;
+  grid-column: span 2;
+  flex-direction: row-reverse;
+}
+
+.search-article-card-container:nth-child(1) > .search-article-image-container {
+  flex: 1;
+}
+
+.search-article-card-container:nth-child(1) > .search-article-content-container {
+  flex: 1;
+  padding-left: 2rem;
+}

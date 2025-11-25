@@ -1,4 +1,4 @@
-// components/Header.jsx
+// src/components/header/header.jsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -15,13 +15,11 @@ export default function Header() {
 
   const toggleMenu = () => {
     setIsMenuOpen(prev => !prev);
-    // Ensure search closes when menu opens
     if (!isMenuOpen) setIsSearchOpen(false);
   };
 
   const toggleSearch = () => {
     setIsSearchOpen(prev => !prev);
-    // Ensure menu closes when search opens
     if (!isSearchOpen) setIsMenuOpen(false);
   };
 
