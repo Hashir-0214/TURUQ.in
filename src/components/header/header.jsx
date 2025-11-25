@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { Menu, Search, X } from 'lucide-react';
 import CategoryOverlay from './categoryOverlay';
 import SearchOverlay from './searchOverlay';
+import Image from 'next/image';
 
 
 export default function Header() {
@@ -109,15 +110,22 @@ export default function Header() {
             </div>
             {/* Search Button/Close Button */}
             <div
-              className={`search-icon bg-red-600 cursor-pointer rounded-full p-1.5 sm:p-2 transition-colors border border-black ${
-                isSearchOpen ? 'bg-red-700' : ''
+              className={`search-icon cursor-pointer rounded-full p-1 sm:p-2 transition-colors ${
+                isSearchOpen ? 'bg-red-700 border border-black' : ' bg-none border border-gray-400'
               }`}
               onClick={toggleSearch}
             >
               {isSearchOpen ? (
                 <X className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               ) : (
-                <Search className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                <Image
+                  src="/search.png"
+                  alt="Search"
+                  width={24}
+                  height={24}
+                  className="w-5 h-5 sm:w-6 sm:h-6"
+                  unoptimized
+                />
               )}
             </div>
           </nav>

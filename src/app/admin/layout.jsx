@@ -4,7 +4,7 @@ import Header from "@/components/admin/Header";
 import Sidebar from "@/components/admin/Sidebar";
 import { NotificationProvider } from "@/components/ui/notification/NotificationProvider";
 import { usePathname, useRouter } from "next/navigation";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { LoaderCircle } from "lucide-react";
 
 export default function Layout({ children }) {
@@ -12,6 +12,9 @@ export default function Layout({ children }) {
     const router = useRouter();
     const [currentUser, setCurrentUser] = useState(null);
     const [isInitialLoading, setIsInitialLoading] = useState(true);
+
+    // 1. ADD STATE: Sidebar open by default (true)
+    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
 
     const isAuthPage = pathname === '/admin/login' || pathname === '/admin/register';
 
@@ -63,14 +66,21 @@ export default function Layout({ children }) {
                     <div className="min-h-screen w-full">{children}</div>
                 ) : (
                     <>
-                        <Header currentUser={currentUser} />
+                        {/* 2. PASS PROPS: Pass state and toggle function to Header */}
+                        <Header 
+                            currentUser={currentUser} 
+                            isSidebarOpen={isSidebarOpen} 
+                            setIsSidebarOpen={setIsSidebarOpen} 
+                        />
+                        
                         <div 
                             className="flex w-[90%] max-w-[1200px] mx-auto mt-[150px] gap-10"
                             style={{ height: 'calc(100vh - 150px)' }} 
                         >
-                            <Sidebar />
+                            {/* 3. CONDITIONAL RENDER: Show Sidebar based on state */}
+                            {isSidebarOpen && <Sidebar />}
+
                             <main className="flex-1 p-6 overflow-y-auto pb-20 scrollbar-hide">
-                                {/* This is where the page content loads */}
                                 {children}
                             </main>
                         </div>

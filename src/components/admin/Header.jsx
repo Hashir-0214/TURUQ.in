@@ -2,7 +2,6 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import Image from "next/image";
 import { useState } from "react";
 import {
@@ -10,17 +9,19 @@ import {
   User,
   LayoutDashboard,
   LogOut,
+  LoaderCircle
 } from "lucide-react";
 import { useNotification } from "../ui/notification/NotificationProvider";
 
-export default function Header({ currentUser }) {
+// 1. RECEIVE PROPS: Add isSidebarOpen and setIsSidebarOpen
+export default function Header({ currentUser, isSidebarOpen, setIsSidebarOpen }) {
   const [logoutLoading, setLogoutLoading] = useState(false);
   const { addNotification } = useNotification();
-  const [menuOpen, setMenuOpen] = useState(false);
+  // Removed local 'menuOpen' state
   const [ddOpen, setDdOpen] = useState(false);
 
-
-  const toggleMenu = () => setMenuOpen((p) => !p);
+  // 2. UPDATE TOGGLE: Use the prop setter
+  const toggleMenu = () => setIsSidebarOpen(!isSidebarOpen);
   const toggleDd = () => setDdOpen((p) => !p);
 
   const Logout = async (e) => {
@@ -66,31 +67,34 @@ export default function Header({ currentUser }) {
   return (
     <header className="fixed bg-[#ffedd9] top-0 left-0 w-full z-50 pb-[10px]">
       <div className="relative w-4/5 h-[70px] mx-auto mt-[30px] px-10 rounded-[50px] border border-black bg-[var(--clr-background)] flex items-center justify-between">
+        
         {/* hamburger */}
         <button
           onClick={toggleMenu}
           aria-label="Toggle menu"
+          // 3. USE PROP FOR STYLING: isSidebarOpen instead of menuOpen
           className={`relative z-[1001] w-10 h-10 rounded-full border border-black grid place-items-center transition-transform duration-500 ${
-            menuOpen ? "rotate-180" : ""
+            isSidebarOpen ? "rotate-180" : ""
           }`}
           style={{ background: "var(--clr-button)" }}
         >
           <span
             className={`absolute h-[3px] w-5 bg-white rounded-full transition-all duration-300 ${
-              menuOpen ? "top-1/2 -translate-y-1/2 rotate-45" : "top-[12px]"
+              isSidebarOpen ? "top-1/2 -translate-y-1/2 rotate-45" : "top-[12px]"
             }`}
           />
           <span
             className={`absolute h-[3px] w-5 bg-white rounded-full transition-all duration-300 ${
-              menuOpen ? "opacity-0 w-0" : "top-[18px]"
+              isSidebarOpen ? "opacity-0 w-0" : "top-[18px]"
             }`}
           />
           <span
             className={`absolute h-[3px] w-5 bg-white rounded-full transition-all duration-300 ${
-              menuOpen ? "top-1/2 -translate-y-1/2 -rotate-45" : "top-[24px]"
+              isSidebarOpen ? "top-1/2 -translate-y-1/2 -rotate-45" : "top-[24px]"
             }`}
           />
         </button>
+
         {/* logo – dead centre */}
         <Link
           href="/admin"
@@ -100,6 +104,7 @@ export default function Header({ currentUser }) {
             TURUQ
           </h1>
         </Link>
+        
         {/* avatar + dropdown */}
         <div className="relative">
           <button
@@ -129,7 +134,6 @@ export default function Header({ currentUser }) {
           >
             {/* header */}
             <div className="px-5 pt-4 pb-3 bg-black/5">
-              {/* Use currentUser prop here */}
               <p className="font-semibold text-black">{currentUser?.name}</p>
               <p className="text-xs text-gray-600">{currentUser?.email}</p>
             </div>
