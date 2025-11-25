@@ -26,7 +26,7 @@ export default function FeaturedArticles({ articles }) {
           {/* Image - Use article.imageSrc directly */}
           <div className="article-image mb-4 h-[250px] w-full overflow-hidden rounded-xl">
               <Image
-                  src={article.imageSrc} // DYNAMIC
+                  src={article.imageSrc}
                   alt={article.titleMalayalam}
                   width={400}
                   height={250}

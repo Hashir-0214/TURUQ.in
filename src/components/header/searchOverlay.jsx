@@ -1,19 +1,20 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import Image from 'next/image';
-import Link from 'next/link';
-import { Search, Loader2 } from 'lucide-react';
+import { useState, useEffect } from "react";
+import Image from "next/image";
+import Link from "next/link";
+import { Loader2 } from "lucide-react";
+import Tag from "../ui/tag";
 
 export default function SearchOverlay({ isOpen, onClose }) {
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState("");
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
 
   useEffect(() => {
     if (!isOpen) {
-      setQuery('');
+      setQuery("");
       setResults([]);
       setHasSearched(false);
       setLoading(false);
@@ -22,17 +23,19 @@ export default function SearchOverlay({ isOpen, onClose }) {
 
   const performSearch = async (searchTerm) => {
     if (!searchTerm.trim()) {
-        setResults([]);
-        setHasSearched(false);
-        setLoading(false);
-        return;
+      setResults([]);
+      setHasSearched(false);
+      setLoading(false);
+      return;
     }
 
     setLoading(true);
     setHasSearched(true);
 
     try {
-      const res = await fetch(`/api/search?q=${encodeURIComponent(searchTerm)}`);
+      const res = await fetch(
+        `/api/search?q=${encodeURIComponent(searchTerm)}`
+      );
       if (res.ok) {
         const data = await res.json();
         setResults(data);
@@ -67,73 +70,87 @@ export default function SearchOverlay({ isOpen, onClose }) {
   if (!isOpen) return null;
 
   const ResultCard = ({ result }) => (
-    <div className="border border-black rounded-xl p-4 transition-shadow duration-300 hover:shadow-xl bg-white h-full flex flex-col">
-      <Link href={result.link} onClick={onClose} className="flex-grow">
-        <div className="mb-4">
-          <div className="overflow-hidden rounded-lg">
-            <Image
-              src={result.image}
-              alt={result.title}
-              width={200}
-              height={150}
-              className="w-full h-40 object-cover rounded-lg"
-            />
-          </div>
-        </div>
-        <div className="flex flex-wrap gap-2 mb-3">
-          {result.categories.map((cat, idx) => (
-            <span
-              key={idx}
-              className="font-sans text-xs bg-gray-100 px-2 py-1 rounded-full border border-gray-300 uppercase"
-            >
-              {cat}
-            </span>
-          ))}
-        </div>
-        <h3 className="font-sans text-lg font-bold mb-2 text-black hover:text-red-600 transition-colors line-clamp-2">
-          {result.title}
-        </h3>
-        <div className="font-sans text-xs text-gray-500 mt-auto pt-2 border-t border-gray-100">
-          <span>{result.author}</span>
-          <span className="mx-2">|</span>
-          <span>{result.date}</span>
+    <div className="h-full bg-[#ffedd9] flex flex-col article-card rounded-xl border border-black p-5 transition-all duration-500 ease-in-out hover:-translate-y-1 hover:shadow-lg">
+      {/* Image Section */}
+      <Link href={result.link} onClick={onClose} className="block mb-4">
+        <div className="article-image h-[200px] w-full overflow-hidden rounded-xl">
+          <Image
+            src={result.image}
+            alt={result.title}
+            width={400}
+            height={250}
+            sizes="(max-width: 768px) 100vw, 25vw"
+            style={{ width: "100%", height: "100%", objectFit: "cover" }}
+            className="h-full w-full object-cover transition-transform hover:scale-105"
+          />
         </div>
       </Link>
+
+      {/* Categories Tag Section */}
+      <div className="flex flex-wrap gap-2 mb-3">
+        {result.categories.map((cat, idx) => (
+          <Tag
+            key={idx}
+            link={cat.link} // Uses the link from the API object
+            className="z-50 w-fit"
+          >
+            {cat.name} {/* Renders the name from the API object */}
+          </Tag>
+        ))}
+      </div>
+
+      {/* Title Section */}
+      <Link href={result.link} onClick={onClose} className="flex-grow">
+        <h3 className="article-title local-font-rachana text-[25px] h-[70px] overflow-hidden font-bold leading-[22px] py-1 text-[#a82a2a] hover:text-red-700 transition-colors">
+          {result.title}
+        </h3>
+      </Link>
+
+      {/* Meta Section */}
+      <div className="article-meta flex items-center gap-2">
+        <span className="author text-xs font-normal text-black">{result.author}</span>
+        <span className="divider text-xs text-black">|</span>
+        <span className="date text-xs font-normal text-black opacity-45">{result.date}</span>
+      </div>
     </div>
   );
 
   return (
-    <div
-      className="search-overlay fixed inset-0 bg-[#ffedd9] z-40 pt-[150px] overflow-y-auto transition-opacity duration-300 ease-in-out"
-    >
-      <div className="max-w-4xl mx-auto p-6">
+    <div className="search-overlay fixed inset-0 bg-[#ffedd9] z-40 pt-[150px] overflow-y-auto transition-opacity duration-300 ease-in-out">
+      <div className="max-w-6xl mx-auto p-6">
         <h2 className="font-oswald text-4xl text-black text-center mb-12 uppercase">
           SEARCH HERE
         </h2>
 
         {/* Search Bar */}
         <form onSubmit={handleFormSubmit} className="mb-16">
-          <div className="flex items-center border border-black rounded-[50px] bg-white p-2.5 shadow-lg">
+          <div className="flex items-center border border-black rounded-[50px] bg-[#ffedd9] p-2.5">
             <input
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="TYPE SOMETHING........"
-              className="font-sans text-lg w-full bg-transparent outline-none px-6 py-2.5 placeholder:text-gray-400"
+              className="font-poppins text-2xl w-full bg-transparent outline-none px-10 py-2.5 placeholder:text-gray-400"
               aria-label="Search input"
               autoFocus
             />
-            {/* Button is mostly visual now, or for instant search if clicked */}
             <button
               type="submit"
               disabled={loading}
-              className="ml-4 flex-shrink-0 bg-red-600 rounded-full p-3 transition-transform duration-200 hover:scale-105 disabled:opacity-70"
+              className="ml-4 flex-shrink-0 rounded-full p-3 transition-transform duration-200 hover:scale-105 disabled:opacity-70"
               aria-label="Submit search"
             >
               {loading ? (
-                <Loader2 className="w-6 h-6 text-white animate-spin" />
+                <Loader2 className="w-6 h-6 text-black animate-spin" />
               ) : (
-                <Search className="w-6 h-6 text-white" />
+                <Image
+                  src="/search.png"
+                  alt="Search"
+                  width={24}
+                  height={24}
+                  className="w-5 h-5 sm:w-6 sm:h-6"
+                  unoptimized
+                />
               )}
             </button>
           </div>
@@ -147,19 +164,24 @@ export default function SearchOverlay({ isOpen, onClose }) {
         </div>
 
         {/* Empty State Message */}
-        {hasSearched && !loading && results.length === 0 && query.trim() !== '' && (
+        {hasSearched &&
+          !loading &&
+          results.length === 0 &&
+          query.trim() !== "" && (
             <div className="text-center text-gray-500 mt-10">
-                <p className="font-sans text-lg">No results found for &quot;{query}&quot;</p>
+              <p className="font-sans text-lg">
+                No results found for &quot;{query}&quot;
+              </p>
             </div>
-        )}
+          )}
 
         {/* See More Button */}
         {results.length > 0 && (
-            <div className="text-center mt-12">
-                <button className="bg-red-600 text-white font-bold py-3 px-12 rounded-full border border-red-600 transition-all duration-300 hover:bg-white hover:text-red-600 shadow-xl">
-                    SEE MORE
-                </button>
-            </div>
+          <div className="text-center mt-12">
+            <button className="bg-red-600 text-white font-bold py-3 px-12 rounded-full border border-red-600 transition-all duration-300 hover:bg-white hover:text-red-600 shadow-xl">
+              SEE MORE
+            </button>
+          </div>
         )}
       </div>
     </div>

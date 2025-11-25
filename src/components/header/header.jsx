@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Menu, Search, X } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
 import CategoryOverlay from './categoryOverlay';
 import SearchOverlay from './searchOverlay';
 import Image from 'next/image';

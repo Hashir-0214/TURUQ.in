@@ -5,8 +5,8 @@ import { dbConnect } from "@/lib/mongodb";
 import Post from "@/models/Post";
 import "@/models/Author"; 
 import "@/models/SubCategory";
+import "@/models/Category"; // Required for deep population
 
-// Helper to format date like "22 MAY 2025"
 const formatDate = (dateString) => {
   const dateObj = new Date(dateString);
   if (isNaN(dateObj.getTime())) return '';
@@ -28,7 +28,6 @@ export async function GET(request) {
         return NextResponse.json([]);
     }
 
-    // Case-insensitive regex search on Title
     const searchRegex = new RegExp(query, 'i');
 
     const posts = await Post.find({
@@ -36,33 +35,51 @@ export async function GET(request) {
         title: { $regex: searchRegex }
     })
     .sort({ created_at: -1 })
-    .limit(12) 
+    .limit(10) 
     .populate('author_id')
-    .populate('subcategory_ids')
+    // Deep populate: Get Subcategory -> Parent Category to build the URL
+    .populate({
+        path: 'subcategory_ids',
+        populate: {
+            path: 'parent_id',
+            model: 'Category',
+            select: 'slug'
+        }
+    })
     .lean();
 
-    // Map to the exact structure the SearchOverlay expects
     const results = posts.map(article => {
         const rawDate = article.created_at || article.created_at?.$date;
         const dateString = rawDate ? rawDate : new Date();
 
-        // Flatten categories to an array of strings like ['UNITED', 'ARCHITECTURE']
         let categories = [];
         if (Array.isArray(article.subcategory_ids)) {
             categories = article.subcategory_ids
-                .filter(sub => sub && sub.name)
-                .map(sub => sub.name.toUpperCase())
+                .filter(sub => sub && sub.name && sub.slug)
+                .map(sub => {
+                    // formatting: /{categorySlug}/{subcategorySlug}
+                    const parentSlug = sub.parent_id?.slug || 'general';
+                    const subSlug = sub.slug;
+                    
+                    return {
+                        name: sub.name.toUpperCase(),
+                        link: `/category/${parentSlug}/${subSlug}` // Added /category prefix for standard routing, remove if your route is literally just /parent/sub
+                    };
+                })
                 .slice(0, 2);
         }
-        if (categories.length === 0) categories = ['GENERAL'];
+        
+        if (categories.length === 0) {
+            categories = [{ name: 'GENERAL', link: '/category/general' }];
+        }
 
         return {
             id: article._id.toString(),
             title: article.title || 'Untitled',
             author: article.author_id?.name || 'Anonymous',
             date: formatDate(dateString),
-            categories: categories, 
-            link: `/article/${article.slug}`, // Construct the full link here
+            categories: categories, // Now returns objects { name, link }
+            link: `/${article.slug}`, // Article link
             image: article.featured_image || 'https://placehold.co/200x150/ccc/333?text=Image+Missing',
         };
     });
