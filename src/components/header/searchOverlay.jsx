@@ -137,7 +137,7 @@ export default function SearchOverlay({ isOpen, onClose }) {
             <button
               type="submit"
               disabled={loading}
-              className="ml-4 flex-shrink-0 rounded-full p-3 transition-transform duration-200 hover:scale-105 disabled:opacity-70"
+              className="ml-4 flex-shrink-0 rounded-full p-3 transition-transform duration-200 hover:scale-105 disabled:opacity-70 cursor-pointer"
               aria-label="Submit search"
             >
               {loading ? (
@@ -148,7 +148,7 @@ export default function SearchOverlay({ isOpen, onClose }) {
                   alt="Search"
                   width={24}
                   height={24}
-                  className="w-5 h-5 sm:w-6 sm:h-6"
+                  className="mr-3 w-7 h-7 sm:w-8 sm:h-8"
                   unoptimized
                 />
               )}
