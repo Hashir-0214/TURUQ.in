@@ -5,27 +5,20 @@ import ArticleGridCard from "../reusable/ArticleGridCard";
 import Tag from "../ui/tag";
 
 export default function CategoryOverlay({ isOpen, onClose }) {
-  // --- STATE MANAGEMENT ---
   const [categories, setCategories] = useState([]);
   const [subCategories, setSubCategories] = useState([]);
-  
-  // CACHE STATE: Stores data we've already fetched
-  // Format: { "category-slug": [articles], "subcategory-slug": [articles] }
-  const [articlesCache, setArticlesCache] = useState({}); 
 
-  // Selection State
+  const [articlesCache, setArticlesCache] = useState({});
+
   const [activeCategorySlug, setActiveCategorySlug] = useState(null);
   const [activeSubCategorySlug, setActiveSubCategorySlug] = useState(null);
 
-  // Loading State
-  const [loading, setLoading] = useState(false); // For initial menu load
-  const [articlesLoading, setArticlesLoading] = useState(false); // For specific grid load
+  const [loading, setLoading] = useState(false);
+  const [articlesLoading, setArticlesLoading] = useState(false);
 
-  // --- 1. FETCH METADATA (Categories & Subcategories) ---
   useEffect(() => {
     if (isOpen) {
       const fetchMetaData = async () => {
-        // Only fetch if we haven't loaded categories yet
         if (categories.length > 0) return;
 
         setLoading(true);
@@ -57,37 +50,31 @@ export default function CategoryOverlay({ isOpen, onClose }) {
 
       fetchMetaData();
     }
-  }, [isOpen]); // Removed dependencies to prevent re-fetching
+  }, [isOpen]);
 
-  // --- 2. DERIVED STATE ---
   const activeCategory = categories.find((c) => c.slug === activeCategorySlug);
 
   const currentSubCategories = activeCategory
     ? subCategories.filter((sub) => sub.parent_id === activeCategory._id)
     : [];
 
-  // Helper to determine the unique key for the cache
   const getCacheKey = () => {
-    return activeSubCategorySlug 
-      ? `sub:${activeSubCategorySlug}` 
+    return activeSubCategorySlug
+      ? `sub:${activeSubCategorySlug}`
       : `cat:${activeCategorySlug}`;
   };
 
-  // --- 3. FETCH ARTICLES (WITH CACHING) ---
   useEffect(() => {
     const fetchArticles = async () => {
       if (!activeCategorySlug) return;
 
       const cacheKey = getCacheKey();
 
-      // STRATEGY: Check Cache First
       if (articlesCache[cacheKey]) {
-        // Data exists! No loading, just use it.
         setArticlesLoading(false);
         return;
       }
 
-      // Data not in cache, fetch from API
       setArticlesLoading(true);
       try {
         let url = `/api/articles?`;
@@ -102,23 +89,25 @@ export default function CategoryOverlay({ isOpen, onClose }) {
 
         if (res.ok) {
           const rawData = await res.json();
-          
-          // MAPPING: Convert DB format to ArticleGridCard props format
-          const mappedData = rawData.map(post => ({
+
+          const mappedData = rawData.map((post) => ({
             _id: post._id,
             title: post.title,
-            image: post.featured_image || 'https://placehold.co/600x400',
-            link: `/article/${post.slug}`, // Assuming you have an article page
-            category: activeCategory?.name, // Use current context name
-            subcategory: post.subcategory_ids?.[0]?.name, // Optional: Grab first subcat name
-            author: post.author_id?.name || 'Author',
-            date: new Date(post.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })
+            image: post.featured_image || "https://placehold.co/600x400",
+            link: `/${post.slug}`,
+            category: activeCategory?.name,
+            subcategory: post.subcategory_ids?.[0]?.name,
+            author: post.author_id?.name || "Author",
+            date: new Date(post.created_at).toLocaleDateString("en-GB", {
+              day: "numeric",
+              month: "short",
+              year: "numeric",
+            }),
           }));
 
-          // SAVE TO CACHE
-          setArticlesCache(prev => ({
+          setArticlesCache((prev) => ({
             ...prev,
-            [cacheKey]: mappedData
+            [cacheKey]: mappedData,
           }));
         }
       } catch (error) {
@@ -133,7 +122,6 @@ export default function CategoryOverlay({ isOpen, onClose }) {
     }
   }, [activeCategorySlug, activeSubCategorySlug, isOpen]);
 
-  // --- HANDLERS ---
   const handleCategoryChange = (slug) => {
     if (slug === activeCategorySlug) return;
     setActiveCategorySlug(slug);
@@ -144,7 +132,6 @@ export default function CategoryOverlay({ isOpen, onClose }) {
     setActiveSubCategorySlug(slug);
   };
 
-  // Get articles from cache for rendering
   const currentArticles = articlesCache[getCacheKey()] || [];
 
   if (!isOpen) return null;
@@ -153,12 +140,13 @@ export default function CategoryOverlay({ isOpen, onClose }) {
     <div className="menu-overlay fixed inset-0 bg-[#ffedd9] z-40 pt-[150px] overflow-y-auto transition-opacity duration-300 ease-in-out">
       <div className="max-w-7xl mx-auto h-full px-4 sm:px-6 lg:px-8">
         <div className="flex h-full min-h-[calc(100vh-150px)] flex-col lg:flex-row">
-          
           {/* --- LEFT SIDEBAR --- */}
           <div className="w-full lg:w-1/4 pt-10 pb-4 lg:pb-10 lg:border-r border-gray-300 lg:pr-8">
             {loading ? (
               <div className="space-y-4 animate-pulse">
-                {[1,2,3,4].map(i => <div key={i} className="h-8 bg-gray-300 rounded w-3/4"></div>)}
+                {[1, 2, 3, 4].map((i) => (
+                  <div key={i} className="h-8 bg-gray-300 rounded w-3/4"></div>
+                ))}
               </div>
             ) : (
               <nav className="flex flex-col flex-wrap lg:block gap-x-6">
@@ -184,9 +172,8 @@ export default function CategoryOverlay({ isOpen, onClose }) {
 
           {/* --- RIGHT AREA --- */}
           <div className="w-full lg:w-3/4 overflow-y-auto py-10 lg:pl-8">
-            
             {/* Subcategories */}
-            <div className="flex flex-wrap gap-3 items-center mb-6 border-b border-red-600 pb-3 min-h-[50px]">
+            <div className="flex flex-wrap gap-3 items-center mb-6 min-h-[30px]">
               {currentSubCategories.length > 0 ? (
                 currentSubCategories.map((sub) => (
                   <div
@@ -194,7 +181,13 @@ export default function CategoryOverlay({ isOpen, onClose }) {
                     onClick={() => handleSubCategoryClick(sub.slug)}
                     className="cursor-pointer"
                   >
-                    <Tag className={activeSubCategorySlug === sub.slug ? "bg-red-600 text-white" : ""}>
+                    <Tag
+                      className={
+                        activeSubCategorySlug === sub.slug
+                          ? "bg-red-600 text-white"
+                          : ""
+                      }
+                    >
                       {sub.name}
                     </Tag>
                   </div>
@@ -209,7 +202,9 @@ export default function CategoryOverlay({ isOpen, onClose }) {
             {/* Grid */}
             {articlesLoading ? (
               <div className="flex items-center justify-center h-40">
-                <p className="text-gray-500 animate-pulse">Loading articles...</p>
+                <p className="text-gray-500 animate-pulse">
+                  Loading articles...
+                </p>
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-8">
@@ -228,7 +223,11 @@ export default function CategoryOverlay({ isOpen, onClose }) {
                   ))
                 ) : (
                   <p className="text-gray-500 local-font-rachana text-lg mt-4 col-span-full">
-                    No highlights available for {activeSubCategorySlug ? "this subcategory" : activeCategory?.name}.
+                    No highlights available for{" "}
+                    {activeSubCategorySlug
+                      ? "this subcategory"
+                      : activeCategory?.name}
+                    .
                   </p>
                 )}
               </div>

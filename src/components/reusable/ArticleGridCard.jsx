@@ -45,11 +45,11 @@ export default function ArticleGridCard({
       <div className="p-4 sm:p-6 flex-1 flex flex-col justify-between">
         {/* Category Tags */}
         <div className="flex gap-2 mb-3">
-          <Tag className="poppins-regular text-[10px] sm:text-xs bg-gray-100 px-2 py-1 rounded-full border border-gray-300 uppercase font-medium">
+          <Tag className="poppins-regular">
             {mainCategory}
           </Tag>
           {subCategory && (
-            <Tag className="poppins-regular text-[10px] sm:text-xs bg-gray-100 px-2 py-1 rounded-full border border-gray-300 uppercase font-medium">
+            <Tag className="poppins-regular">
               {subCategory}
             </Tag>
           )}
