@@ -1,22 +1,38 @@
-/* src/app/search-articlecard.css */
-
-.search-article-card-container {
+/* Make the first item span 2 columns */
+.category-article-card-container {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 2rem;
+  gap: 1rem;
 }
 
-.search-article-card-container:nth-child(1) > .search-article-card {
-  margin-top: 0px;
+.category-article-card-container > div:nth-child(1) {
   grid-column: span 2;
+}
+
+/* Make first card horizontal */
+.category-article-card-container > div:nth-child(1) .category-article-card {
   flex-direction: row-reverse;
 }
 
-.search-article-card-container:nth-child(1) > .search-article-image-container {
+.category-article-card-container
+  > div:nth-child(1)
+  .category-article-image-container {
   flex: 1;
 }
 
-.search-article-card-container:nth-child(1) > .search-article-content-container {
+.category-article-card-container
+  > div:nth-child(1)
+  .category-article-content-container {
   flex: 1;
-  padding-left: 2rem;
+}
+
+.category-article-card-container > div:nth-child(1) .category-article-content {
+  display: -webkit-box;
+}
+
+.category-article-card-container > div .category-article-content {
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
 }

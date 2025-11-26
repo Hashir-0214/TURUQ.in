@@ -3,153 +3,148 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
-import { getSubCategoryData } from "@/lib/category"; // Corrected import
+import { getSubCategoryData } from "@/lib/category";
 import Footer from "@/components/footer/footer";
+import Tag from "@/components/ui/tag";
+
+// Import the SAME CSS Module from the parent directory
+import styles from "../category.module.css";
 
 /* ------------------------------------------------------------------ */
-/* METADATA: Dynamic title based on subCategoryName                   */
+/* METADATA                                                           */
 /* ------------------------------------------------------------------ */
 export async function generateMetadata({ params }) {
-  const { subCategoryName } = await params;
-  
-  // Fetch data to get the proper name
-  const { subCategory } = await getSubCategoryData(subCategoryName);
+  const { slug, subCategoryName } = await params;
+  const { activeSubCategory, mainCategory } = await getSubCategoryData(slug, subCategoryName);
 
-  if (!subCategory) return { title: "Sub-Category Not Found" };
-
-  const displayName = subCategory.name;
+  if (!activeSubCategory || !mainCategory) return { title: "Category Not Found" };
 
   return {
-    title: `${displayName} Articles - TURUQ`,
-    description: `All articles categorized under ${displayName}.`,
+    title: `${activeSubCategory.name} | ${mainCategory.name} - TURUQ`,
+    description: `Articles in ${activeSubCategory.name}, under ${mainCategory.name}.`,
   };
 }
 
 /* ------------------------------------------------------------------ */
-/* PAGE: Server Component for SubCategory Articles                    */
+/* PAGE COMPONENT                                                     */
 /* ------------------------------------------------------------------ */
 export default async function SubCategoryPage({ params }) {
-  const { slug, subCategoryName } = await params; 
-  
-  // High-performance data fetch (using the dedicated subcategory function)
-  const { articles, subCategory, parentCategory } = await getSubCategoryData(subCategoryName);
+  const { slug, subCategoryName } = await params;
 
-  if (!articles.length || !subCategory || !parentCategory) {
-    notFound(); 
+  // Fetch specific subcategory data
+  const { articles, activeSubCategory, mainCategory, subCats } = await getSubCategoryData(slug, subCategoryName);
+
+  // 404 if subcategory doesn't exist or doesn't match parent
+  if (!activeSubCategory || !mainCategory) {
+    notFound();
   }
-  
-  const subCategoryNameDisplay = subCategory.name;
-  const parentCategorySlug = parentCategory.slug;
-  
+
+  // Build the filter links (Siblings + "All")
+  const filterLinks = [
+    { label: `All ${mainCategory.name}`, slug: slug, isMain: true },
+    ...subCats.map((s) => ({ label: s.name, slug: s.slug, isMain: false })),
+  ];
+
   return (
-    <main className="bg-[#ffedd9] text-black">
-      {/* HEADER - Display Category > SubCategory Path */}
-      <section className="w-11/12 max-w-[1250px] mx-auto border border-black rounded-[20px] py-8 px-14 mb-6 mt-44">
-        <h1 className="font-['Oswald'] text-6xl text-center uppercase">
-          {/* Breadcrumb back to main category */}
-          <Link href={`/category/${parentCategorySlug}`} className="text-gray-500 hover:text-black transition-colors">
-            {parentCategorySlug}
-          </Link>
-          <span className="mx-4 text-gray-500">/</span>
-          {subCategoryNameDisplay}
-        </h1>
-      </section>
-      
-      {/* ARTICLES GRID ------------------------------------------------- */}
-      <div className="w-11/12 max-w-[1250px] mx-auto grid grid-cols-4 gap-5 mt-8">
-        {articles.map((a, idx) => (
-          <ArticleCard key={a.id} article={a} idx={idx} />
-        ))}
+    <main className={styles.mainContent}>
+      <div className={styles.container}>
+        
+        {/* HEADER: Show Subcategory Name */}
+        <section className={styles.categoryHeader}>
+          <h1 className={styles.categoryTitle}>
+            {activeSubCategory.name}
+          </h1>
+        </section>
+
+        {/* FILTER NAVIGATION */}
+        <nav className={styles.subCategoryContainer}>
+          {filterLinks.map((l) => (
+            <Tag
+              key={l.slug}
+              // If it's the "All" link, go to /category/parentSlug
+              // If it's a sibling subcat, go to /category/parentSlug/subSlug
+              link={
+                l.isMain
+                  ? `/category/${mainCategory.slug}`
+                  : `/category/${mainCategory.slug}/${l.slug}`
+              }
+              // Highlight if this is the current subcategory
+              className={l.slug === subCategoryName ? "!bg-[#D64545] !text-white" : ""}
+            >
+              {l.label}
+            </Tag>
+          ))}
+        </nav>
+
+        {/* ARTICLES GRID */}
+        {articles.length > 0 ? (
+          <div className={styles.articlesContainer}>
+            {articles.map((a, idx) => (
+              <ArticleCard key={a.id} article={a} />
+            ))}
+          </div>
+        ) : (
+          <div style={{ textAlign: "center", padding: "80px 0" }}>
+            <h2 style={{ fontFamily: "Rachana", fontSize: "24px", color: "gray" }}>
+              No articles found in {activeSubCategory.name} yet.
+            </h2>
+          </div>
+        )}
+
+        {/* SEE MORE BUTTON */}
+        {articles.length > 0 && (
+          <div className={styles.seeMoreSection}>
+            <button className={styles.seeMoreBtn}>
+              SEE MORE
+            </button>
+          </div>
+        )}
       </div>
-      
-      {/* SEE MORE */}
-      <div className="w-11/12 max-w-[1250px] mx-auto mt-10 mb-10">
-        <button className="w-full h-20 bg-[#D64545] text-white rounded-[15px] hover:bg-[#a43333]">
-          SEE MORE
-        </button>
-      </div>
-      
-      {/* FOOTER */}
+
       <Footer />
     </main>
   );
 }
 
 /* ------------------------------------------------------------------ */
-/* ArticleCard - Reused Component (copied from main page for ease)    */
+/* ArticleCard Component (Identical to parent page)                   */
 /* ------------------------------------------------------------------ */
-function ArticleCard({ article: a, idx }) {
-  const isBig = idx === 0;
-  const isWide = idx === 1 || idx === 8;
-  const noImage = idx === 3 || idx === 7;
-
-  const base = "border border-black rounded-[20px] bg-[#ffedd9] overflow-hidden";
-  const cls = isBig
-    ? `${base} col-span-4 flex flex-row-reverse gap-10 p-10 h-[510px]`
-    : isWide
-    ? `${base} col-span-2`
-    : `${base} col-span-1`;
-
+function ArticleCard({ article: a }) {
   return (
-    <article className={cls}>
-      {!noImage && (
-        <div
-          className={`${
-            isBig ? "w-[620px] h-[430px] relative" : "w-full aspect-[26/22.5] relative"
-          } rounded-[20px] overflow-hidden`}
-        >
-          {/* Using Image component, relying on global loader config */}
-          <Image
-            src={a.imageSrc}
-            alt={a.titleMalayalam}
-            fill
-            sizes={isBig ? "(max-width: 1250px) 100vw, 620px" : "(max-width: 768px) 50vw, 25vw"}
-            className="w-full h-full object-cover"
-          />
-        </div>
-      )}
+    <article className={styles.articleCard}>
+      <div className={styles.articleImage}>
+        <Image
+          src={a.imageSrc}
+          alt={a.title}
+          fill
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+          style={{ objectFit: "cover" }}
+        />
+      </div>
 
-      <div
-        className={`flex flex-col justify-between ${isBig ? "pt-0" : "pt-4"}`}
-      >
-        {/* tags */}
-        <div className="flex gap-2 mb-4">
-          {a.categories.map((c) => (
-            <Link
-              key={c.name}
-              href={c.link} // Links directly to the subcategory path
-              className="text-[10px] border border-black rounded px-1 hover:bg-black hover:text-white transition-colors"
-            >
-              {c.name}
-            </Link>
-          ))}
-        </div>
-
-        {/* title + desc */}
+      <div className={styles.cardContent}>
         <div>
-          <Link href={`/${a.slug}`}>
-            <h2
-              className={`font-['Rachana'] text-[#A82A2A] font-bold hover:text-red-700 transition-colors
-                ${
-                  isBig ? "text-5xl leading-[45px]" : "text-[23px] leading-[22px]"
-                }`}
-            >
-              {a.titleMalayalam}
-            </h2>
+          <div className={styles.tags}>
+            {a.categories.map((c) => (
+              <Tag key={c.name} link={c.link}>
+                {c.name}
+              </Tag>
+            ))}
+          </div>
+
+          <Link href={`/${a.slug}`} className={styles.articleTitle}>
+            {a.title}
           </Link>
 
-          {(isBig || noImage) && (
-            <p className="font-['Rachana'] text-lg mt-3">
-              {a.descriptionMalayalam}
-            </p>
-          )}
+          <p className={styles.articleDescription}>
+            {a.description}
+          </p>
         </div>
 
-        {/* meta */}
-        <div className="flex items-center gap-2 text-xs mt-3">
-          <span className="font-['Poppins']">{a.author}</span>
-          <span>|</span>
-          <span className="font-['Poppins'] text-black/45">{a.date}</span>
+        <div className={styles.articleMeta}>
+          <span className={styles.author}>{a.author}</span>
+          <span className={styles.divider}>|</span>
+          <span className={styles.date}>{a.date}</span>
         </div>
       </div>
     </article>

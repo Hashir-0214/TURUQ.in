@@ -1,24 +1,10 @@
 // components/Footer.jsx
 import Image from 'next/image';
-import { Oswald, Poppins } from 'next/font/google';
 import { BsTwitterX, BsInstagram, BsFacebook } from "react-icons/bs";
-
-// Configure fonts (alternative to Google Fonts in CSS)
-const oswald = Oswald({
-  subsets: ['latin'],
-  weight: ['500'],
-  variable: '--font-oswald'
-});
-
-const poppins = Poppins({
-  subsets: ['latin'],
-  weight: ['400'],
-  variable: '--font-poppins'
-});
 
 export default function Footer() {
   return (
-    <footer className={`${oswald.variable} ${poppins.variable} bg-background mt-[60px]`}>
+    <footer className="bg-background mt-[60px]">
       <div className="border-t border-b border-[#989696]">
         <div className="mx-auto flex flex-col md:flex-row items-center justify-between w-[83%] max-w-[1250px] py-6 md:py-4 gap-6 md:gap-0">
           <div className="footer-logo">

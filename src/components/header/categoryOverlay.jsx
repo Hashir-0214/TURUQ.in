@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image"; // Ensure Image is imported
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Loader2 } from "lucide-react";
 import Tag from "../ui/tag";
 import "@/app/search-articlecard.css";
 
@@ -166,10 +166,9 @@ export default function CategoryOverlay({ isOpen, onClose }) {
 
   return (
     <div className="menu-overlay fixed inset-0 bg-[#ffedd9] z-40 pt-[150px] overflow-y-auto transition-opacity duration-300 ease-in-out">
-      <div className="max-w-7xl mx-auto h-full px-4 sm:px-6 lg:px-8">
+      <div className="max-w-6xl mx-auto h-full px-4 sm:px-6 lg:px-8">
         <div className="flex h-full min-h-[calc(100vh-150px)] flex-col lg:flex-row">
-          {/* --- LEFT SIDEBAR: CATEGORIES --- */}
-          <div className="w-full lg:w-1/4 pt-10 pb-4 lg:pb-10 lg:border-r border-gray-300 lg:pr-8">
+          <div className="w-full lg:w-1/4 pt-10 pb-4 lg:pb-10 lg:border-r border-gray-500 lg:pr-8 mb-60">
             {loading ? (
               <div className="space-y-4 animate-pulse">
                 {[1, 2, 3, 4].map((i) => (
@@ -177,14 +176,14 @@ export default function CategoryOverlay({ isOpen, onClose }) {
                 ))}
               </div>
             ) : (
-              <nav className="flex flex-col flex-wrap lg:block gap-x-6">
+              <nav className="flex flex-col flex-wrap lg:block space-y-2 lg:space-y-10">
                 {categories.map((cat) => (
                   <button
                     key={cat.slug}
                     onMouseEnter={() => handleCategoryInteraction(cat.slug)}
                     onClick={() => handleCategoryInteraction(cat.slug)}
                     onFocus={() => handleCategoryInteraction(cat.slug)}
-                    className={`text-left flex font-oswald uppercase text-xl lg:text-4xl mb-4 lg:mb-6 transition-colors focus:outline-none ${
+                    className={`text-left flex font-oswald uppercase text-xl lg:text-4xl transition-colors focus:outline-none ${
                       cat.slug === activeCategorySlug
                         ? "text-red-600 font-bold"
                         : "text-black hover:text-red-600"
@@ -199,10 +198,10 @@ export default function CategoryOverlay({ isOpen, onClose }) {
           </div>
 
           {/* --- RIGHT AREA --- */}
-          <div className="w-full lg:w-3/4 overflow-y-auto py-10 lg:pl-8">
+          <div className="w-full lg:w-3/4 overflow-y-auto pt-8 lg:pl-8">
             {/* Subcategories Header Area */}
-            <div className="flex flex-wrap items-center justify-between mb-6 border-b border-red-600 pb-3 min-h-[50px]">
-              <div className="flex flex-wrap gap-3 items-center">
+            <div className="flex flex-wrap items-center justify-between mb-2 min-h-[50px]">
+              <div className="flex flex-wrap gap-2 items-center">
                 {currentSubCategories.length > 0 ? (
                   currentSubCategories.map((sub) => (
                     <div
@@ -251,12 +250,12 @@ export default function CategoryOverlay({ isOpen, onClose }) {
             {articlesLoading ? (
               <div className="flex items-center justify-center h-40">
                 <p className="text-gray-500 animate-pulse">
-                  Loading articles...
+                  <Loader2 className="w-8 h-8 inline-block" />
                 </p>
               </div>
             ) : (
               // RESTORED: Responsive Grid (1 col mobile, 2 cols desktop)
-              <div className="gap-8">
+              <div className="category-article-card-container">
                 {currentArticles.length > 0 ? (
                   currentArticles.map((article, index) => {
                     const subName = article.subcategory?.name?.toUpperCase();
@@ -265,17 +264,17 @@ export default function CategoryOverlay({ isOpen, onClose }) {
                     return (
                       <div
                         key={article._id || index}
-                        className="search-article-card-container h-full"
+                        className="h-full"
                       >
                         {/* INLINED CARD COMPONENT */}
-                        <div className="search-article-card rounded-2xl flex flex-col overflow-hidden bg-[#ffedd9] border border-gray-500 shadow-xl hover:shadow-2xl transition-shadow duration-300 h-full p-6">
+                        <div className="category-article-card rounded-2xl flex flex-col gap-3 overflow-hidden bg-[#ffedd9] border border-gray-500 h-full p-6">
                           {/* Article Image */}
                           <Link
                             href={article.link || "#"}
                             onClick={onClose}
-                            className="search-article-image-container w-full block relative w-full"
+                            className="category-article-image-container w-full block relative w-full"
                           >
-                            <div className="w-full h-60 relative overflow-hidden rounded-2xl">
+                            <div className="w-full h-44 relative overflow-hidden rounded-2xl">
                               <Image
                                 src={article.image}
                                 alt={article.title || "Article Image"}
@@ -291,12 +290,12 @@ export default function CategoryOverlay({ isOpen, onClose }) {
                           </Link>
 
                           {/* Content */}
-                          <div className="search-article-content-container max-h-[240px] w-full px-4 sm:px-6 flex flex-col justify-between">
+                          <div className="category-article-content-container max-h-[240px] h-auto min-h-[120px] w-full flex flex-col justify-between">
                             <div className="flex items-center">
                               {subName && (
                                 <Tag
                                   link={subLink}
-                                  className="z-50 relative"
+                                  className="z-50"
                                   onClick={onClose}
                                 >
                                   {subName}
@@ -314,7 +313,7 @@ export default function CategoryOverlay({ isOpen, onClose }) {
                               </Link>
 
                               {/* Content Preview */}
-                              <div className="local-font-rachana text-gray-700 line-clamp-4 text-base sm:text-[18px] leading-[20px]">
+                              <div className="category-article-content hidden local-font-rachana text-gray-700 line-clamp-2 text-base sm:text-[18px] leading-[20px]">
                                 {article.content}
                               </div>
                             </div>

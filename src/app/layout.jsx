@@ -17,7 +17,7 @@ export default function RootLayout({ children }) {
   const registerPage = pathname === "/admin/register";
 
   useEffect(() => {
-    if (isAdmin) return; 
+    if (isAdmin) return;
 
     setLoading(true);
     const timer = setTimeout(() => {
@@ -43,20 +43,13 @@ export default function RootLayout({ children }) {
         />
       </head>
       <body suppressHydrationWarning>
-        {/* Loading Overlay - Only shows if loading is true (which is now prevented for Admin) */}
-        {loading && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/80 backdrop-blur-sm">
-            <div className="flex flex-col items-center gap-3">
-              <div className="h-12 w-12 animate-spin rounded-full border-4 border-gray-300 border-t-blue-600"></div>
-              <p className="text-sm font-medium text-gray-600">Loading...</p>
-            </div>
-          </div>
-        )}
 
         {!isAdmin && !loginPage && !registerPage && <Header />}
-        
+
         {/* Removed the opacity logic for Admin to prevent flickering */}
-        <div className={loading ? "opacity-50 pointer-events-none" : "opacity-100"}>
+        <div
+          className={loading ? "opacity-50 pointer-events-none" : "opacity-100"}
+        >
           {children}
         </div>
 
