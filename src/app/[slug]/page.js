@@ -43,7 +43,7 @@ export default async function ArticlePage({ params }) {
 
   /* ----------  JSX  ---------- */
   return (
-    <main className="mt-36 px-4">
+    <main className="mt-8 px-4">
       {/* FEATURED IMAGE */}
       <section className="flex flex-col items-center max-w-[1250px] h-auto mx-auto border border-black rounded-[20px] p-5 mb-10 overflow-hidden">
         <Image

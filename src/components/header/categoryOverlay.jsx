@@ -204,28 +204,24 @@ export default function CategoryOverlay({ isOpen, onClose }) {
               <div className="flex flex-wrap gap-2 items-center">
                 {currentSubCategories.length > 0 ? (
                   currentSubCategories.map((sub) => (
-                    <div
+                    <Tag
                       key={sub.slug}
                       onMouseEnter={() => handleSubCategoryHover(sub.slug)}
                       onFocus={() => handleSubCategoryHover(sub.slug)}
-                      className="inline-block"
+                      className={ "z-50 " +
+                        (activeSubCategorySlug === sub.slug
+                          ? "bg-red-600 text-white"
+                          : "")
+                      }
+                      link={
+                        activeCategory
+                          ? `/category/${activeCategory.slug}/${sub.slug}`
+                          : "#"
+                      }
+                      onClick={onClose}
                     >
-                      <Tag
-                        className={
-                          activeSubCategorySlug === sub.slug
-                            ? "bg-red-600 text-white"
-                            : ""
-                        }
-                        link={
-                          activeCategory
-                            ? `/category/${activeCategory.slug}/${sub.slug}`
-                            : "#"
-                        }
-                        onClick={onClose}
-                      >
-                        {sub.name}
-                      </Tag>
-                    </div>
+                      {sub.name}
+                    </Tag>
                   ))
                 ) : (
                   <span className="text-gray-400 text-sm italic">
@@ -262,10 +258,7 @@ export default function CategoryOverlay({ isOpen, onClose }) {
                     const subLink = article.subcategory?.link;
 
                     return (
-                      <div
-                        key={article._id || index}
-                        className="h-full"
-                      >
+                      <div key={article._id || index} className="h-full">
                         {/* INLINED CARD COMPONENT */}
                         <div className="category-article-card rounded-2xl flex flex-col gap-3 overflow-hidden bg-[#ffedd9] border border-gray-500 h-full p-6">
                           {/* Article Image */}
