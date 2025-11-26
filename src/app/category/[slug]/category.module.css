@@ -94,7 +94,7 @@
 
 .cardContent {
   flex: 1;
-  height: 100%;
+  height: auto;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -113,7 +113,6 @@
   line-height: 1.2;
   font-weight: 700;
   color: var(--clr-main-text);
-  margin-bottom: 10px;
   display: block;
   transition: color 0.3s;
 }
@@ -168,14 +167,12 @@
   min-height: 350px;
 }
 .articleCard:nth-child(1) .cardContent {
-  padding: 20px 0;
   width: 50%;
-  justify-content: center;
+  justify-content: space-between;
 }
 .articleCard:nth-child(1) .articleTitle {
   font-size: 50px;
   line-height: 1.1;
-  margin-bottom: 20px;
 }
 /* IMPORTANT: display as -webkit-box for clamp to work */
 .articleCard:nth-child(1) .articleDescription {

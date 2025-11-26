@@ -48,7 +48,7 @@ export default async function DynamicCategoryPage({ params }) {
   const currentCategoryName = mainCategory.name;
 
   const filterLinks = [
-    { label: `All ${currentCategoryName}`, slug: slug },
+    { label: "All", slug: slug },
     ...subCats.map((s) => ({ label: s.name, slug: s.slug })),
   ];
 
