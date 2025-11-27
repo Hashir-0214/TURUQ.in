@@ -1,10 +1,20 @@
 // lib/auth.js
-
 import { cookies } from 'next/headers';
 import * as jose from 'jose';
 
+// Ensure this environment variable exists!
 const secret = new TextEncoder().encode(process.env.JWT_SECRET);
 const COOKIE_NAME = 'session_token';
+
+// NEW: Function to create the token using jose
+export async function signToken(payload) {
+    const alg = 'HS256';
+    return new jose.SignJWT(payload)
+        .setProtectedHeader({ alg })
+        .setIssuedAt()
+        .setExpirationTime('1h') // Token expires in 1 hour
+        .sign(secret);
+}
 
 export async function setSession(token) {
     const cookieStore = await cookies();
@@ -24,9 +34,8 @@ export async function getSession() {
 
     try {
         const { payload } = await jose.jwtVerify(token, secret);
-        return payload; // This payload is the currentUser data
+        return payload;
     } catch (error) {
-        console.error('Failed to verify session token:', error);
         return null;
     }
 }

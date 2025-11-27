@@ -1,59 +1,38 @@
-// middleware.js
+// src/middleware.js
 import { NextResponse } from 'next/server';
-// import { getSession } from './lib/auth'; // You should not need this in middleware for simple redirect logic
+import * as jose from 'jose';
+
+const secret = new TextEncoder().encode(process.env.JWT_SECRET);
 
 export async function middleware(request) {
   const { pathname } = request.nextUrl;
+  
+  // 1. define paths
+  const isAdminPath = pathname.startsWith('/admin');
+  const isAuthPage = pathname === '/admin/login' || pathname === '/admin/register';
 
-  console.log('[MW] pathname:', pathname);
+  // 2. Get token
+  const sessionToken = request.cookies.get('session_token')?.value;
 
-  // Protect every /admin/* route except /admin/login and /admin/register
-  if (pathname.startsWith('/admin') && pathname !== '/admin/login' && pathname !== '/admin/register') {
-
-    // Retrieves the session token (a Cookie object)
-    const sessionToken = request.cookies.get('session_token');
-
-    console.log('[MW] session token:', sessionToken);
-
-    if (!sessionToken) {
-      console.log('[MW] no session → redirecting to /admin/login');
-      return NextResponse.redirect(new URL('/admin/login', request.url));
+  // 3. Verify Token Logic
+  let isValidSession = false;
+  if (sessionToken) {
+    try {
+      await jose.jwtVerify(sessionToken, secret);
+      isValidSession = true;
+    } catch (error) {
+      console.log('Token invalid or expired');
     }
-
-    console.log('[MW] session found → continue');
-    return NextResponse.next();
   }
 
-  // If user is already logged in and tries to access login/register, redirect to admin
-  if (pathname === '/admin/login' || pathname === '/admin/register') {
-    const sessionToken = request.cookies.get('session_token');
+  // SCENARIO 1: User tries to access Admin but is NOT logged in
+  if (isAdminPath && !isAuthPage && !isValidSession) {
+    return NextResponse.redirect(new URL('/admin/login', request.url));
+  }
 
-    if (sessionToken) {
-      console.log('[MW] already logged in → redirecting to /admin');
-      // Get the referrer or fallback to /admin
-      const referer = request.headers.get('referer');
-      let redirectUrl = '/admin';
-
-      // If there's a referrer and it's from the same origin, use it
-      if (referer) {
-        try {
-          const refererUrl = new URL(referer);
-          const currentUrl = new URL(request.url);
-
-          // Only redirect to referrer if it's from same origin and not login/register
-          if (refererUrl.origin === currentUrl.origin &&
-            !refererUrl.pathname.includes('/login') &&
-            !refererUrl.pathname.includes('/register')) {
-            redirectUrl = refererUrl.pathname;
-          }
-        } catch (error) {
-          // If referrer parsing fails, stick with /admin
-          console.log('[MW] referrer parsing failed, using /admin');
-        }
-      }
-
-      return NextResponse.redirect(new URL(redirectUrl, request.url));
-    }
+  // SCENARIO 2: User tries to access Login but IS already logged in
+  if (isAuthPage && isValidSession) {
+    return NextResponse.redirect(new URL('/admin', request.url));
   }
 
   return NextResponse.next();
