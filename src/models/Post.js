@@ -78,6 +78,10 @@ const PostSchema = new mongoose.Schema(
   },
 );
 
+// Ensure index for efficient queries on status
+PostSchema.index({ status: 1 });
+PostSchema.index({ slug: 1 });
+
 PostSchema.statics.findPublished = function () {
   return this.find({ status: 'published' });
 };

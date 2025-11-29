@@ -10,7 +10,6 @@ import { getHomeData } from '@/lib/article-service';
 export const dynamic = 'force-dynamic'; 
 
 export default async function Home() {
-  // 1. Fetch heroArticles here
   const { heroArticles, featuredArticles, mostRecentArticles } = await getHomeData();
 
   if (!featuredArticles.length && !mostRecentArticles.length && !heroArticles.length) {

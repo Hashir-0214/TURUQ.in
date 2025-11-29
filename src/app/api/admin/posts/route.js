@@ -1,183 +1,182 @@
-// app/api/admin/posts/route.js
+// src/app/api/admin/posts/route.js
 import { NextResponse } from "next/server";
 import dbConnect from "@/mongodb";
 import Post from "@/models/Post";
-
-// FIX 1: Import these so Mongoose can register the schemas for population
-import Author from "@/models/Author"; 
-import SubCategory from "@/models/SubCategory";
-
-const SERVER_API_KEY = process.env.NEXT_PUBLIC_API_KEY || process.env.API_KEY;
+import Author from "@/models/Author";
+import * as jose from 'jose';
+import { cookies } from 'next/headers';
 
 const slugify = (text) => {
   if (!text) return "";
-  let slug = text.toString().toLowerCase();
-  return slug
+  return text
+    .toString()
+    .toLowerCase()
     .trim()
     .replace(/\s+/g, "-")
     .replace(/[^\w\-]+/g, "")
     .replace(/\-\-+/g, "-")
-    .replace(/^-+|-+$/g, ""); 
+    .replace(/^-+|-+$/g, "");
 };
+
+async function isAuthenticated() {
+  const cookieStore = await cookies();
+  const token = cookieStore.get('session_token')?.value;
+  const secret = new TextEncoder().encode(process.env.JWT_SECRET);
+
+  if (!token) return false;
+
+  try {
+    await jose.jwtVerify(token, secret);
+    return true;
+  } catch (error) {
+    return false;
+  }
+}
 
 export async function GET(request) {
   try {
     await dbConnect();
-  } catch (e) {
-    console.error("Database connection failed in GET /posts:", e);
-    return NextResponse.json(
-      { message: "Database connection failed" },
-      { status: 500 }
-    );
-  }
+    const { searchParams } = new URL(request.url);
+    const postId = searchParams.get('id');
 
-  const apikey = request.headers.get("x-api-key");
-
-  if (!apikey || apikey !== SERVER_API_KEY) {
-    return NextResponse.json({ message: "Unauthorized, key missing" }, { status: 401 });
-  }
-
-  // Check for specific post ID
-  const { searchParams } = new URL(request.url);
-  const postId = searchParams.get('id');
-  
-  if (postId) {
-      try {
-          const post = await Post.findById(postId)
-              .populate('author_id')
-              .populate('subcategory_ids');
-              
-          if (!post) {
-              return NextResponse.json({ message: "Post not found" }, { status: 404 });
-          }
-          return NextResponse.json({ data: post });
-      } catch (error) {
-          console.error(`Error fetching single post ${postId}:`, error);
-          return NextResponse.json({ message: "Error fetching post" }, { status: 500 });
-      }
-  }
-
-  // --- THIS WAS THE ISSUE ---
-  // Default behavior: Fetch all posts
-  try {
-    const posts = await Post.find()
+    // 1. Fetch Single Post
+    if (postId) {
+      const post = await Post.findById(postId)
+          .populate('author_id', 'name email avatar')
+          .populate('subcategory_ids', 'name slug')
+          .lean();
+      if (!post) return NextResponse.json({ message: "Post not found" }, { status: 404 });
+      return NextResponse.json({ data: post });
+    }
+    
+    // 2. Fetch List (Optimized)
+    const page = parseInt(searchParams.get('page')) || 1;
+    const limit = parseInt(searchParams.get('limit')) || 20;
+    const skip = (page - 1) * limit;
+    
+    const totalPosts = await Post.countDocuments();
+    const posts = await Post.find({})
+        .select('-content -blocks -markdown')
         .sort({ created_at: -1 })
-        // FIX 2: Populate the author details so the table can read 'author.name'
-        .populate('author_id', 'name email avatar')
-        // Populate categories so filters work
-        .populate('subcategory_ids', 'name slug');
+        .skip(skip)
+        .limit(limit)
+        .populate('author_id', 'name avatar')
+        .populate('subcategory_ids', 'name')
+        .lean();
 
-    return NextResponse.json({ data: posts });
+    return NextResponse.json({ 
+      data: posts,
+      pagination: { total: totalPosts, page, pages: Math.ceil(totalPosts / limit) }
+    });
+
   } catch (error) {
-    console.error("Error fetching posts:", error);
-    return NextResponse.json(
-      { message: "Error fetching posts" },
-      { status: 500 }
-    );
+    console.error("GET Error:", error);
+    return NextResponse.json({ message: "Error fetching posts" }, { status: 500 });
   }
 }
 
 export async function POST(request) {
-  try {
-    await dbConnect();
-  } catch (e) {
-    console.error("Database connection failed in POST /posts:", e);
-    return NextResponse.json(
-      { message: "Database connection failed" },
-      { status: 500 }
-    );
-  }
-
-  const apikey = request.headers.get("x-api-key");
-
-  if (!apikey || apikey !== SERVER_API_KEY) {
+  if (!(await isAuthenticated())) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 
   try {
+    await dbConnect();
     const data = await request.json();
 
-    let postSlug = data.slug;
-    if (!postSlug || postSlug.trim() === '') {
-      if (!data.title) {
-        return NextResponse.json({ message: 'Title is required.' }, { status: 400 });
-      }
-      postSlug = slugify(data.title);
+    if (!data.title) {
+      return NextResponse.json({ message: 'Title is required.' }, { status: 400 });
+    }
+
+    if (data.author_id) {
+       const authorExists = await Author.findById(data.author_id);
+       if (!authorExists) {
+         return NextResponse.json({ message: 'Invalid Author ID provided.' }, { status: 400 });
+       }
+    }
+
+    let postSlug = data.slug ? slugify(data.slug) : slugify(data.title);
+    
+    const existingPost = await Post.findOne({ slug: postSlug });
+    if (existingPost) {
+        postSlug = `${postSlug}-${Math.floor(Math.random() * 10000)}`;
     }
     
+    // Structure permissions object
+    const permissions = {
+        is_slide_article: data.permissions?.is_slide_article || false,
+        is_premium: data.permissions?.is_premium || false,
+        is_featured: data.permissions?.is_featured || false,
+    };
+
     const newPost = new Post({
       ...data,
       slug: postSlug,
       views: 0,
       tags: Array.isArray(data.tags) ? data.tags : (data.tags || "").split(",").map(t => t.trim()).filter(Boolean),
-      subcategory_ids: Array.isArray(data.subcategory_ids) ? data.subcategory_ids : (data.subcategory_ids || []),
+      permissions: permissions,
     });
 
     await newPost.save();
     return NextResponse.json({ data: newPost }, { status: 201 });
+
   } catch (error) {
-    console.error("Post creation error:", error);
-
+    console.error("POST Error:", error);
     if (error.code === 11000) {
-      return NextResponse.json({ error: 'Post with this slug already exists.' }, { status: 409 });
+      return NextResponse.json({ error: 'Duplicate key error (Slug)' }, { status: 409 });
     }
-    if (error.name === 'ValidationError') {
-      return NextResponse.json({ error: `Validation failed: ${error.message}` }, { status: 400 });
-    }
-
-    return NextResponse.json({ error: 'Error creating post' }, { status: 500 });
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
 export async function PUT(request) {
-  try {
-    await dbConnect();
-  } catch (e) {
-    console.error("Database connection failed in PUT /posts:", e);
-    return NextResponse.json(
-      { message: "Database connection failed" },
-      { status: 500 }
-    );
-  }
-
-  const apikey = request.headers.get("x-api-key");
-
-  if (!apikey || apikey !== SERVER_API_KEY) {
+  if (!(await isAuthenticated())) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 
   try {
+    await dbConnect();
     const data = await request.json();
-    const { _id, slug: incomingSlug, title, ...updateData } = data;
+    const { _id, slug: incomingSlug, title, permissions, ...updateData } = data;
 
     if (!_id) {
-        return NextResponse.json({ message: 'Post ID is required for update.' }, { status: 400 });
+        return NextResponse.json({ message: 'Post ID is required.' }, { status: 400 });
     }
     
-    let finalSlug = incomingSlug;
-    if (!finalSlug || finalSlug.trim() === '') {
-        if (!title) {
-            return NextResponse.json({ message: 'Title is required to generate slug.' }, { status: 400 });
+    // Slug Logic
+    let finalSlug = undefined;
+    if (incomingSlug || title) {
+        const base = incomingSlug && incomingSlug.trim() !== '' ? incomingSlug : title;
+        if(base) {
+            finalSlug = slugify(base);
+            const conflict = await Post.findOne({ slug: finalSlug, _id: { $ne: _id } });
+            if (conflict) {
+                 return NextResponse.json({ error: `Slug '${finalSlug}' is already taken.` }, { status: 409 });
+            }
         }
-        finalSlug = slugify(title);
-    }
-    
-    const existingPost = await Post.findOne({ slug: finalSlug, _id: { $ne: _id } });
-    if (existingPost) {
-        return NextResponse.json({ error: `Post with slug '${finalSlug}' already exists.` }, { status: 409 });
     }
 
     const update = {
-        title,
-        slug: finalSlug,
         ...updateData,
         tags: Array.isArray(updateData.tags) ? updateData.tags : (updateData.tags || []),
-        subcategory_ids: Array.isArray(updateData.subcategory_ids) ? updateData.subcategory_ids : (updateData.subcategory_ids || []),
+        subcategory_ids: updateData.subcategory_ids || [],
     };
+    
+    if (title) update.title = title;
+    if (finalSlug) update.slug = finalSlug;
+    
+    // Handle permissions update if provided
+    if (permissions) {
+        update.permissions = {
+            is_slide_article: permissions.is_slide_article,
+            is_premium: permissions.is_premium,
+            is_featured: permissions.is_featured,
+        };
+    }
     
     delete update.views; 
     delete update.created_at; 
-    
+
     const updatedPost = await Post.findByIdAndUpdate(
         _id, 
         update, 
@@ -187,53 +186,51 @@ export async function PUT(request) {
     .populate('subcategory_ids');
 
     if (!updatedPost) {
-        return NextResponse.json({ message: "Post not found for update" }, { status: 404 });
+        return NextResponse.json({ message: "Post not found" }, { status: 404 });
     }
 
     return NextResponse.json({ data: updatedPost });
 
   } catch (error) {
-    console.error("Post update error:", error);
-
-    if (error.code === 11000) {
-      return NextResponse.json({ error: 'Post with this slug already exists.' }, { status: 409 });
-    }
-    if (error.name === 'ValidationError') {
-      return NextResponse.json({ error: `Validation failed: ${error.message}` }, { status: 400 });
-    }
-
-    return NextResponse.json({ error: 'Error updating post' }, { status: 500 });
+    console.error("PUT Error:", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
 export async function DELETE(request) {
-  try {
-    await dbConnect();
-  } catch (e) {
-    console.error("Database connection failed in DELETE /posts:", e);
-    return NextResponse.json(
-      { message: "Database connection failed" },
-      { status: 500 }
-    );
-  }
-
-  const apikey = request.headers.get("x-api-key");
-
-  if (!apikey || apikey !== SERVER_API_KEY) {
+  if (!(await isAuthenticated())) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
 
   try {
-    const { _id } = await request.json();
+    await dbConnect();
     
-    if (!_id) {
+    let idToDelete = null;
+    const { searchParams } = new URL(request.url);
+    idToDelete = searchParams.get('id');
+
+    if (!idToDelete) {
+        try {
+            const body = await request.json();
+            idToDelete = body._id || body.id;
+        } catch (e) {
+            // body might be empty if relying on query params
+        }
+    }
+    
+    if (!idToDelete) {
       return NextResponse.json({ message: 'Post ID is required' }, { status: 400 });
     }
 
-    await Post.findByIdAndDelete(_id);
+    const deleted = await Post.findByIdAndDelete(idToDelete);
+    
+    if (!deleted) {
+        return NextResponse.json({ message: "Post not found" }, { status: 404 });
+    }
+
     return NextResponse.json({ message: 'Post deleted successfully' });
   } catch (error) {
-    console.error("Post deletion error:", error);
+    console.error("DELETE Error:", error);
     return NextResponse.json({ error: 'Error deleting post' }, { status: 500 });
   }
 }

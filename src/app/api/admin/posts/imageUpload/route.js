@@ -1,3 +1,4 @@
+// src/app/api/admin/posts/imageUpload/route.js
 import { NextResponse } from "next/server";
 import { v2 as cloudinary } from "cloudinary";
 

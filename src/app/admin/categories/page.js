@@ -6,8 +6,12 @@ import { Edit, LoaderCircle, Trash2, PlusCircle } from "lucide-react";
 import Table from "@/components/admin/ui/Table";
 import { useNotification } from "@/components/ui/notification/NotificationProvider";
 import Modal from "@/components/admin/ui/modal/Modal";
-import AddCategoryForm from "@/components/admin/categories/AddCategoryForm"; // New form component
-import AddSubCategoryForm from "@/components/admin/categories/AddSubCategoryForm"; // New form component
+
+// Forms
+import AddCategoryForm from "@/components/admin/categories/AddCategoryForm";
+import AddSubCategoryForm from "@/components/admin/categories/AddSubCategoryForm";
+import EditCategoryForm from "@/components/admin/categories/EditCategoryForm"; 
+import EditSubCategoryForm from "@/components/admin/categories/EditSubCategoryForm"; 
 
 const fetchCategories = async () => {
   const res = await fetch("/api/admin/categories", {
@@ -32,54 +36,84 @@ const fetchSubCategories = async () => {
   });
   if (!res.ok) throw new Error("Failed to fetch subcategories");
   const data = await res.json();
-  // console.log('Subcategories:', data);
   return data;
 };
 
 export default function Categories() {
   const { addNotification } = useNotification();
   const [loading, setLoading] = useState(true);
-  const [categoryData, setCategoryData] = useState([]); // Holds main category list
-  const [subCategoryData, setSubCategoryData] = useState([]); // Holds sub category list
-  const [mainTab, setMainTab] = useState(true); // true for Categories, false for Sub Categories
+  
+  // Data State
+  const [categoryData, setCategoryData] = useState([]); 
+  const [subCategoryData, setSubCategoryData] = useState([]); 
+  const [mainTab, setMainTab] = useState(true); // true = Categories, false = SubCategories
 
+  // Modal States
   const [isAddCategoryModalOpen, setIsAddCategoryModalOpen] = useState(false);
-  const [isAddSubCategoryModalOpen, setIsAddSubCategoryModalOpen] =
-    useState(false);
+  const [isAddSubCategoryModalOpen, setIsAddSubCategoryModalOpen] = useState(false);
+  const [isEditCategoryModalOpen, setIsEditCategoryModalOpen] = useState(false);
+  const [isEditSubCategoryModalOpen, setIsEditSubCategoryModalOpen] = useState(false);
+
+  // Editing State
+  const [editingItem, setEditingItem] = useState(null);
 
   /* ------------- Handlers ------------- */
+  
   const handleEdit = useCallback(
     (id) => {
       if (mainTab) {
-        // Editing a main category
-        console.log(`Edit category:`, id);
+        // Edit Category
+        const itemToEdit = categoryData.find((item) => item._id === id);
+        if (itemToEdit) {
+          setEditingItem(itemToEdit);
+          setIsEditCategoryModalOpen(true);
+        }
       } else {
-        // Editing a sub-category
-        console.log(`Edit sub-category:`, id);
+        // Edit SubCategory
+        const itemToEdit = subCategoryData.find((item) => item._id === id);
+        if (itemToEdit) {
+          setEditingItem(itemToEdit);
+          setIsEditSubCategoryModalOpen(true);
+        }
       }
-
-      addNotification(
-        "info",
-        `Editing feature for ID ${id} not yet implemented.`
-      );
     },
-    [mainTab, addNotification]
+    [mainTab, categoryData, subCategoryData]
   );
+
+  // Called when EditCategoryForm successfully updates the DB
+  const handleCategoryUpdated = (updatedCategory) => {
+    setCategoryData((prev) => 
+      prev.map((cat) => (cat._id === updatedCategory._id ? updatedCategory : cat))
+    );
+    setIsEditCategoryModalOpen(false);
+    setEditingItem(null);
+  };
+
+  // Called when EditSubCategoryForm successfully updates the DB
+  const handleSubCategoryUpdated = (updatedSubCategory) => {
+    setSubCategoryData((prev) => 
+      prev.map((sub) => (sub._id === updatedSubCategory._id ? updatedSubCategory : sub))
+    );
+    setIsEditSubCategoryModalOpen(false);
+    setEditingItem(null);
+  };
 
   const handleDelete = useCallback(
     async (id) => {
       const itemType = mainTab ? "Category" : "Subcategory";
+      const endpoint = mainTab ? "/api/admin/categories" : "/api/admin/subcategories";
 
-      console.log(`Attempting to delete ${itemType}:`, id);
+      // Confirm before deleting
+      if(!confirm(`Are you sure you want to delete this ${itemType}?`)) return;
 
       try {
-        const res = await fetch("/api/admin/categories", {
+        const res = await fetch(endpoint, {
           method: "DELETE",
           headers: {
             "x-api-key": process.env.NEXT_PUBLIC_API_KEY,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ id }), // Send the ID in the body for the DELETE request
+          body: JSON.stringify({ id }), 
         });
 
         const result = await res.json();
@@ -87,11 +121,10 @@ export default function Categories() {
         if (!res.ok) {
           const message = result.message || `Failed to delete ${itemType}.`;
           addNotification("error", message);
-          console.error("Delete API Error:", result);
           return;
         }
 
-        // Success: Update the state to remove the deleted item
+        // Success: Update the state
         if (mainTab) {
           setCategoryData((prev) => prev.filter((item) => item._id !== id));
         } else {
@@ -110,57 +143,36 @@ export default function Categories() {
     [mainTab, addNotification]
   );
 
-  /* ------------- Columns Definition (Uses useMemo to access handlers) ------------- */
+  /* ------------- Columns Definition ------------- */
 
-  // Define base columns structure
   const baseColumns = useMemo(
     () => [
-      {
-        key: "name",
-        header: "Name",
-        sortable: true,
-      },
-      {
-        key: "slug",
-        header: "Slug",
-        sortable: true,
-      },
+      { key: "name", header: "Name", sortable: true },
+      { key: "slug", header: "Slug", sortable: true },
       {
         key: "description",
         header: "Description",
         sortable: false,
-        className: "text-gray-600 font-light text-sm",
+        className: "text-gray-600 font-light text-sm truncate max-w-xs",
       },
       {
-        key: "created_at_display", // A new key for display purposes
+        key: "created_at_display",
         header: "Created At",
         sortable: true,
         render: (row) => {
-          // Render receives the entire row now
-          // 1. Check for the dedicated created_at field from Mongoose timestamps
-          if (row?.created_at) {
-            return new Date(row.created_at).toLocaleDateString();
-          }
-          // 2. Fallback: Parse the date from MongoDB _id (if created_at is missing)
-          if (row?._id) {
-            return new Date(
-              parseInt(row._id.substring(0, 8), 16) * 1000
-            ).toLocaleDateString();
-          }
-          // 3. Fail: return N/A
+          if (row?.created_at) return new Date(row.created_at).toLocaleDateString();
+          if (row?._id) return new Date(parseInt(row._id.substring(0, 8), 16) * 1000).toLocaleDateString();
           return "N/A";
         },
       },
       {
         key: "actions",
         header: "Actions",
-        // FIX: The render function now directly accesses the handleDelete/handleEdit from the component scope
-        // because it is defined inside the component via useMemo.
         render: (row) => (
           <div className="flex items-center space-x-2">
             <button
               onClick={(e) => {
-                e.stopPropagation(); // Prevent row click
+                e.stopPropagation();
                 handleEdit(row._id);
               }}
               className="p-1 rounded-full hover:bg-yellow-100 transition-colors"
@@ -170,8 +182,8 @@ export default function Categories() {
             </button>
             <button
               onClick={(e) => {
-                e.stopPropagation(); // Prevent row click
-                handleDelete(row._id); // This now works because handleDelete is in scope
+                e.stopPropagation();
+                handleDelete(row._id);
               }}
               className="p-1 rounded-full hover:bg-red-100 transition-colors"
               aria-label="Delete"
@@ -183,12 +195,11 @@ export default function Categories() {
       },
     ],
     [handleEdit, handleDelete]
-  ); // Depend on handlers so columns update if handlers change (though they are wrapped in useCallback)
+  ); 
+  
+  const categoryColumns = baseColumns;
 
-  // Main Category Columns
-  const categoryColumns = baseColumns; // Categories use the full base columns
-
-  /* ------------- Parent Name Lookup Function ------------- */
+  // Map parent IDs to names for the Subcategory table
   const parentNameMap = useMemo(() => {
     return categoryData.reduce((map, category) => {
       map[category._id] = category.name;
@@ -196,15 +207,13 @@ export default function Categories() {
     }, {});
   }, [categoryData]);
 
-  // Sub Category Columns definition
   const subCategoryColumns = useMemo(() => {
-    // We only need the first three columns, the created_at column, and the actions column
-    const relevantBaseColumns = [
+    return [
       baseColumns[0], // Name
       baseColumns[1], // Slug
       baseColumns[2], // Description
       {
-        key: "parent_name", // New column for parent category name
+        key: "parent_name",
         header: "Parent Category",
         sortable: true,
         render: (row) => parentNameMap[row.parent_id] || "N/A",
@@ -212,14 +221,12 @@ export default function Categories() {
       baseColumns[3], // Created At
       baseColumns[4], // Actions
     ];
-    return relevantBaseColumns;
   }, [parentNameMap, baseColumns]);
 
   /* ------------- Data Fetching ------------- */
   const loadData = useCallback(async () => {
     setLoading(true);
     try {
-      // Fetch categories and subcategories in parallel
       const [categories, subcategories] = await Promise.all([
         fetchCategories(),
         fetchSubCategories(),
@@ -237,30 +244,6 @@ export default function Categories() {
   useEffect(() => {
     loadData();
   }, [loadData]);
-
-  /* ------------- Additional Handlers ------------- */
-  const handleBulkAction = (action, selectedIds) => {
-    if (action === "delete") {
-      console.log("Bulk delete:", selectedIds);
-      addNotification(
-        "info",
-        `Bulk deletion of ${selectedIds.length} items not yet implemented.`
-      );
-    }
-  };
-
-  const handleRowClick = (row) => {
-    // Optional: handle row clicks for navigation/details
-    console.log("Row clicked:", row);
-  };
-
-  const handleCategoryAdded = (newCategory) => {
-    setCategoryData((prev) => [...prev, newCategory]);
-  };
-
-  const handleSubCategoryAdded = (newSubCategory) => {
-    setSubCategoryData((prev) => [...prev, newSubCategory]);
-  };
 
   /* ------------- Render ------------- */
   if (loading) {
@@ -303,45 +286,25 @@ export default function Categories() {
 
       {/* Action Buttons */}
       <div className="flex justify-end mb-4">
-        {mainTab ? (
-          <button
-            onClick={() => setIsAddCategoryModalOpen(true)}
-            className="flex items-center text-sm px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors cursor-pointer"
-          >
-            <PlusCircle className="w-5 h-5 mr-2" />
-            Add Category
-          </button>
-        ) : (
-          <button
-            onClick={() => setIsAddSubCategoryModalOpen(true)}
-            className="flex items-center text-sm px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors cursor-pointer"
-          >
-            <PlusCircle className="w-5 h-5 mr-2" />
-            Add Subcategory
-          </button>
-        )}
+        <button
+          onClick={() => mainTab ? setIsAddCategoryModalOpen(true) : setIsAddSubCategoryModalOpen(true)}
+          className="flex items-center text-sm px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors cursor-pointer"
+        >
+          <PlusCircle className="w-5 h-5 mr-2" />
+          {mainTab ? "Add Category" : "Add Subcategory"}
+        </button>
       </div>
 
       {/* Table Display */}
-      {mainTab ? (
-        <Table
-          data={categoryData}
-          columns={categoryColumns} // Use categoryColumns
-          onRowClick={handleRowClick}
-          onBulkAction={handleBulkAction}
-          // The actions prop is no longer needed as the handlers are defined in the columns via useMemo
-          searchableKeys={["name", "slug", "description"]}
-        />
-      ) : (
-        <Table
-          data={subCategoryData}
-          columns={subCategoryColumns} // Use subCategoryColumns for subcategories
-          onRowClick={handleRowClick}
-          onBulkAction={handleBulkAction}
-          // The actions prop is no longer needed
-          searchableKeys={["name", "slug", "description", "parent_name"]} // Add parent_name for search
-        />
-      )}
+      <Table
+        data={mainTab ? categoryData : subCategoryData}
+        columns={mainTab ? categoryColumns : subCategoryColumns}
+        onRowClick={(row) => console.log("Row clicked:", row)}
+        onBulkAction={(action, ids) => console.log(action, ids)}
+        searchableKeys={mainTab ? ["name", "slug"] : ["name", "slug", "parent_name"]}
+      />
+
+      {/* --- MODALS --- */}
 
       {/* Add Category Modal */}
       <Modal
@@ -351,11 +314,11 @@ export default function Categories() {
       >
         <AddCategoryForm
           onCategoryAdded={(newCategory) => {
-            handleCategoryAdded(newCategory);
+            setCategoryData((prev) => [newCategory, ...prev]); 
             setIsAddCategoryModalOpen(false);
             addNotification("success", "Category added successfully!");
           }}
-          onCancel={() => setIsAddCategoryModalOpen(false)}
+          onClose={() => setIsAddCategoryModalOpen(false)}
         />
       </Modal>
 
@@ -367,14 +330,46 @@ export default function Categories() {
       >
         <AddSubCategoryForm
           onSubCategoryAdded={(newSubCategory) => {
-            handleSubCategoryAdded(newSubCategory);
+            setSubCategoryData((prev) => [newSubCategory, ...prev]);
             setIsAddSubCategoryModalOpen(false);
             addNotification("success", "Subcategory added successfully!");
           }}
-          onCancel={() => setIsAddSubCategoryModalOpen(false)}
-          categories={categoryData} // Pass main categories to the subcategory form
+          onClose={() => setIsAddSubCategoryModalOpen(false)}
+          categories={categoryData} // Pass parent categories
         />
       </Modal>
+
+      {/* Edit Category Modal */}
+      <Modal
+        isOpen={isEditCategoryModalOpen}
+        onClose={() => setIsEditCategoryModalOpen(false)}
+        title="Edit Category"
+      >
+        {editingItem && (
+          <EditCategoryForm
+            category={editingItem}
+            onCategoryUpdated={handleCategoryUpdated}
+            onCancel={() => setIsEditCategoryModalOpen(false)}
+          />
+        )}
+      </Modal>
+
+      {/* Edit SubCategory Modal */}
+      <Modal
+        isOpen={isEditSubCategoryModalOpen}
+        onClose={() => setIsEditSubCategoryModalOpen(false)}
+        title="Edit Subcategory"
+      >
+        {editingItem && (
+          <EditSubCategoryForm
+            subCategory={editingItem}
+            categories={categoryData} // Needed to select parent
+            onSubCategoryUpdated={handleSubCategoryUpdated}
+            onCancel={() => setIsEditSubCategoryModalOpen(false)}
+          />
+        )}
+      </Modal>
+      
     </div>
   );
 }

@@ -1,37 +1,33 @@
 // src/components/admin/posts/EditPostForm.jsx
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Save, X, Loader2, Upload, RotateCw } from "lucide-react";
-// Assuming these imports exist in the user's project structure
 import Select from "@/components/ui/select/Select";
 import RichTextEditor from "../ui/text-editor/TextEditor";
 import Image from "next/image";
 
-// --- START: Copied and adapted helper functions from AddPostForm.jsx ---
-
-// NOTE: Retaining the Malayalam slugify map and logic for consistency.
+// --- MALAYALAM SLUGIFY UTILS ---
 const MALAYALAM_MAP = {
-  // Vowels (independent)
-  അ: "a", ആ: "aa", ഇ: "i", ഈ: "ee", ഉ: "u", ഊ: "oo", ഋ: "ru", എ: "e", ഏ: "e", ഐ: "ai", ഒ: "o", ഓ: "o", ഔ: "au",
-  // Consonants (with inherent 'a')
-  ക: "ka", ഖ: "kha", ഗ: "ga", ഘ: "gha", ങ: "nga", ച: "cha", ഛ: "chha", ജ: "ja", ഝ: "jha", ഞ: "nja", ട: "ta", ഠ: "tha", ഡ: "da", ഢ: "dha", ണ: "na", ത: "ta", ഥ: "tha", ദ: "da", ധ: "dha", ന: "na", പ: "pa", ഫ: "pha", ബ: "ba", ഭ: "bha", മ: "ma", യ: "ya", ര: "ra", ല: "la", വ: "va", ശ: "sha", ഷ: "sha", സ: "sa", ഹ: "ha", ള: "la", ഴ: "zha", റ: "ra",
-  // Chillu characters
-  ൺ: "n", ൻ: "n", ർ: "r", ൽ: "l", ൾ: "l", ൿ: "k",
-  // Vowel signs
-  "ാ": "aa", "ി": "i", "ീ": "ee", "ു": "u", "ൂ": "oo", "ൃ": "ru", "െ": "e", "േ": "e", "ൈ": "ai", "ൊ": "o", "ോ": "o", "ൗ": "au", "ൌ": "au",
-  // Other signs
-  "ം": "m", "ഃ": "h", "്": "",
-  // Digits
-  "൦": "0", "൧": "1", "൨": "2", "൩": "3", "൪": "4", "൫": "5", "൬": "6", "൭": "7", "൮": "8", "൯": "9",
+  അ: "a", ആ: "aa", ഇ: "i", ഈ: "ee", ഉ: "u", ഊ: "oo", ഋ: "ru", എ: "e", ഏ: "e", ഐ: "ai",
+  ഒ: "o", ഓ: "o", ഔ: "au", ക: "ka", ഖ: "kha", ഗ: "ga", ഘ: "gha", ങ: "nga", ച: "cha",
+  ഛ: "chha", ജ: "ja", ഝ: "jha", ഞ: "nja", ട: "ta", ഠ: "tha", ഡ: "da", ഢ: "dha", ണ: "na",
+  ത: "ta", ഥ: "tha", ദ: "da", ധ: "dha", ന: "na", പ: "pa", ഫ: "pha", ബ: "ba", ഭ: "bha",
+  മ: "ma", യ: "ya", ര: "ra", ല: "la", വ: "va", ശ: "sha", ഷ: "sha", സ: "sa", ഹ: "ha",
+  ള: "la", ഴ: "zha", റ: "ra", ൺ: "n", ൻ: "n", ർ: "r", ൽ: "l", ൾ: "l", ൿ: "k",
+  "ാ": "aa", "ി": "i", "ീ": "ee", "ു": "u", "ൂ": "oo", "ൃ": "ru", "െ": "e", "േ": "e",
+  "ൈ": "ai", "ൊ": "o", "ോ": "o", "ൗ": "au", "ൌ": "au", "ം": "m", "ഃ": "h", "്": "",
+  "0": "0", "1": "1", "2": "2", "3": "3", "4": "4", "5": "5", "6": "6", "7": "7", "8": "8", "9": "9"
 };
 
 const CONSONANTS = new Set([
-  "ക", "ഖ", "ഗ", "ഘ", "ങ", "ച", "ഛ", "ജ", "ഝ", "ഞ", "ട", "ഠ", "ഡ", "ഢ", "ണ", "ത", "ഥ", "ദ", "ധ", "ന", "പ", "ഫ", "ബ", "ഭ", "മ", "യ", "ര", "ല", "വ", "ശ", "ഷ", "സ", "ഹ", "ള", "ഴ", "റ",
+  "ക", "ഖ", "ഗ", "ഘ", "ങ", "ച", "ഛ", "ജ", "ഝ", "ഞ", "ട", "ഠ", "ഡ", "ഢ", "ണ",
+  "ത", "ഥ", "ദ", "ധ", "ന", "പ", "ഫ", "ബ", "ഭ", "മ", "യ", "ര", "ല", "വ", "ശ",
+  "ഷ", "സ", "ഹ", "ള", "ഴ", "റ"
 ]);
 
 const VOWEL_SIGNS = new Set([
-  "ാ", "ി", "ീ", "ു", "ൂ", "ൃ", "െ", "േ", "ൈ", "ൊ", "ോ", "ൗ", "ൌ",
+  "ാ", "ി", "ീ", "ു", "ൂ", "ൃ", "െ", "േ", "ൈ", "ൊ", "ോ", "ൗ", "ൌ"
 ]);
 
 const VIRAMA = "്";
@@ -51,7 +47,7 @@ const slugify = (text) => {
 
       if (nextChar === VIRAMA) {
         result += baseConsonant.slice(0, -1);
-        i++;
+        i++; 
         continue;
       }
 
@@ -71,8 +67,6 @@ const slugify = (text) => {
       result += char;
     }
   }
-
-  // Apply standard slug rules
   return result
     .trim()
     .replace(/\s+/g, "-")
@@ -80,42 +74,54 @@ const slugify = (text) => {
     .replace(/\-\-+/g, "-")
     .replace(/^-+|-+$/g, "");
 };
-// --- END: Copied helper functions ---
+// --- END UTILS ---
 
+// --- NEW TOGGLE COMPONENT (Matched AddPostForm) ---
+const ToggleSwitch = ({ label, name, checked, onChange }) => (
+  <label className="inline-flex items-center cursor-pointer group p-2 rounded-lg hover:bg-white hover:shadow-sm transition-all border border-transparent hover:border-gray-200">
+    <input
+      type="checkbox"
+      name={name}
+      className="sr-only peer"
+      checked={checked}
+      onChange={onChange}
+    />
+    <div className="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-red-100 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-600"></div>
+    <span className="ms-3 text-sm font-medium text-gray-700 group-hover:text-gray-900 select-none">
+      {label}
+    </span>
+  </label>
+);
+// --- END COMPONENT ---
 
 const API_KEY = process.env.NEXT_PUBLIC_API_KEY;
 const API_HEADERS = { "x-api-key": API_KEY };
 
-// Fetch single post data, including populated author and subcategories
 const fetchPost = async (postId) => {
-    // Note: The API route is updated to handle 'id' as a query param for single fetches
-    const res = await fetch(`/api/admin/posts?id=${postId}`, { headers: API_HEADERS });
+    const res = await fetch(`/api/admin/posts?id=${postId}`);
     if (!res.ok) {
         const errorData = await res.json();
-        throw new Error(errorData.message || "Failed to fetch post data");
+        throw new Error(errorData.message || "Failed to fetch post");
     }
     return res.json();
 };
 
 const fetchAuthors = async () => {
   const res = await fetch("/api/admin/authors", { headers: API_HEADERS });
-  if (!res.ok) throw new Error("Failed to fetch authors");
+  if (!res.ok) throw new Error("Failed");
   return res.json();
 };
 
 const fetchSubcategories = async () => {
-  const res = await fetch("/api/admin/subcategories", {
-    method: "GET",
-    headers: API_HEADERS,
-  });
-  if (!res.ok) throw new Error("Failed to fetch subcategories");
+  const res = await fetch("/api/admin/subcategories", { headers: API_HEADERS });
+  if (!res.ok) throw new Error("Failed");
   return res.json();
 };
 
 export default function EditPostForm({ postId, onPostUpdated, onCancel }) {
   const [isInitialLoading, setIsInitialLoading] = useState(true);
-  const [initialPostData, setInitialPostData] = useState(null); // The original post data
-  const [originalTitle, setOriginalTitle] = useState(""); // For slug re-generation check
+  const [initialPostData, setInitialPostData] = useState(null);
+  const [originalTitle, setOriginalTitle] = useState("");
 
   const [values, setValues] = useState({
     _id: postId,
@@ -131,6 +137,13 @@ export default function EditPostForm({ postId, onPostUpdated, onCancel }) {
     comments_enabled: true,
   });
 
+  // Permissions State
+  const [permissions, setPermissions] = useState({
+    is_featured: false,
+    is_premium: false,
+    is_slide_article: false,
+  });
+
   const [selectedFile, setSelectedFile] = useState(null);
   const [imageUploadLoading, setImageUploadLoading] = useState(false);
   const [imageError, setImageError] = useState("");
@@ -138,8 +151,8 @@ export default function EditPostForm({ postId, onPostUpdated, onCancel }) {
   const [authors, setAuthors] = useState([]);
   const [allSubCats, setAllSubCats] = useState([]);
 
-  const [loading, setLoading] = useState(false); // Main form submission loading
-  const [error, setError] = useState(""); // Main form error
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   // --- Data Loading and Initialization ---
   useEffect(() => {
@@ -154,15 +167,20 @@ export default function EditPostForm({ postId, onPostUpdated, onCancel }) {
 
         const post = postRes.data;
 
-        // Flatten tags array to comma-separated string for input field
-        const formattedTags = Array.isArray(post.tags) ? post.tags.join(", ") : "";
+        // Populate Permissions State
+        if (post.permissions) {
+            setPermissions({
+                is_featured: post.permissions.is_featured || false,
+                is_premium: post.permissions.is_premium || false,
+                is_slide_article: post.permissions.is_slide_article || false,
+            });
+        }
 
-        // Extract ID from populated author/subcategories
+        const formattedTags = Array.isArray(post.tags) ? post.tags.join(", ") : "";
         const authorId = post.author_id ? (post.author_id._id || post.author_id) : "";
         const subcategoryIds = Array.isArray(post.subcategory_ids)
             ? post.subcategory_ids.map(id => id._id || id)
             : [];
-
 
         const initialValues = {
             _id: post._id,
@@ -179,7 +197,7 @@ export default function EditPostForm({ postId, onPostUpdated, onCancel }) {
         };
 
         setValues(initialValues);
-        setOriginalTitle(post.title); // Store original title for slug logic
+        setOriginalTitle(post.title);
         setInitialPostData(post); 
         
         setAuthors(authorsRes.data || authorsRes || []);
@@ -197,13 +215,8 @@ export default function EditPostForm({ postId, onPostUpdated, onCancel }) {
 
   // --- Slug Generation Logic ---
   useEffect(() => {
-    // Determine if the slug was manually changed from the slug generated by the original title
     const isSlugManuallyEdited = values.slug !== slugify(originalTitle);
     
-    // Only auto-generate slug if: 
-    // 1. Title has content
-    // 2. The slug has NOT been manually edited (i.e., it matches the slug generated from the *original* title)
-    // 3. The title has changed from the original title
     if (values.title && !isSlugManuallyEdited && values.title !== originalTitle) {
       setValues((s) => ({ ...s, slug: slugify(values.title) }));
     }
@@ -211,7 +224,6 @@ export default function EditPostForm({ postId, onPostUpdated, onCancel }) {
 
 
   const handleChange = (e) => {
-    // RichTextEditor onChange passes a string directly
     if (typeof e === "string") {
       setValues((s) => ({ ...s, content: e }));
       setError("");
@@ -221,7 +233,6 @@ export default function EditPostForm({ postId, onPostUpdated, onCancel }) {
     const { name, value, type, checked } = e.target;
     setError("");
 
-    // Use slugify for the slug input field to normalize characters immediately
     if (name === 'slug') {
         const newSlug = slugify(value);
         setValues((s) => ({ ...s, [name]: newSlug }));
@@ -230,27 +241,31 @@ export default function EditPostForm({ postId, onPostUpdated, onCancel }) {
     }
   };
 
-  // Handler to manually regenerate slug from current title
+  const handlePermissionChange = (e) => {
+    const { name, checked } = e.target;
+    setPermissions((prev) => ({
+      ...prev,
+      [name]: checked,
+    }));
+  };
+
   const handleRegenerateSlug = () => {
     if (values.title) {
         setValues((s) => ({ ...s, slug: slugify(values.title) }));
     }
   };
 
-
-  // Handler for file input
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
     if (file) {
       setSelectedFile(file);
       setImageError("");
-      setValues((s) => ({ ...s, featured_image: "" })); // Clear URL if new file selected
+      setValues((s) => ({ ...s, featured_image: "" }));
     } else {
       setSelectedFile(null);
     }
   };
 
-  // Function to upload image to the server/Cloudinary
   const uploadImage = useCallback(async (file) => {
     setImageUploadLoading(true);
     setImageError("");
@@ -258,7 +273,6 @@ export default function EditPostForm({ postId, onPostUpdated, onCancel }) {
     try {
       const formData = new FormData();
       formData.append("file", file);
-
       const res = await fetch("/api/admin/posts/imageUpload", {
         method: "POST",
         headers: API_HEADERS,
@@ -272,7 +286,6 @@ export default function EditPostForm({ postId, onPostUpdated, onCancel }) {
     } catch (err) {
       console.error("Image upload error:", err);
       setImageError(err.message);
-      // Reset to original image URL on error if available
       setValues((s) => ({ ...s, featured_image: initialPostData?.featured_image || "" }));
       return null;
     } finally {
@@ -280,7 +293,6 @@ export default function EditPostForm({ postId, onPostUpdated, onCancel }) {
     }
   }, [initialPostData]); 
 
-  // Function to upload inline images for the RichTextEditor
   const uploadInlineImage = useCallback(async (file) => {
     try {
       const formData = new FormData();
@@ -349,9 +361,7 @@ export default function EditPostForm({ postId, onPostUpdated, onCancel }) {
         setLoading(false);
         return;
       }
-
       const url = await uploadImage(selectedFile);
-
       if (!url) {
         setLoading(false);
         return;
@@ -370,36 +380,34 @@ export default function EditPostForm({ postId, onPostUpdated, onCancel }) {
       featured_image: finalImageUrl,
       author_id: values.author_id === "" ? null : values.author_id,
       tags: formattedTagsArray,
-      _id: postId, // Ensure the ID is passed for the update query
+      permissions: permissions, // Updated permissions
+      _id: postId,
     };
 
     try {
       const res = await fetch("/api/admin/posts", {
-        method: "PUT", // Use PUT for updating
-        headers: {
-          "Content-Type": "application/json",
-          ...API_HEADERS,
-        },
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "Server error during update");
+      if (!res.ok) throw new Error(json.error || "Update failed");
 
-      onPostUpdated(json.data); // Call the update handler
+      onPostUpdated(json.data);
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
-      if (selectedFile) setSelectedFile(null);
     }
   };
 
   // --- Select Option Definitions ---
-  const authorOptions = authors.map((author) => ({
+  const authorOptions = useMemo(() => authors.map((author) => ({
     label: author.name,
     value: author._id,
-  }));
+  })), [authors]);
+
   const currentAuthorValue =
     authorOptions.find((opt) => opt.value === values.author_id) || null;
 
@@ -411,10 +419,10 @@ export default function EditPostForm({ postId, onPostUpdated, onCancel }) {
   const currentStatusValue =
     statusOptions.find((opt) => opt.value === values.status) || null;
 
-  const subcategoryOptions = allSubCats.map((subCat) => ({
+  const subcategoryOptions = useMemo(() => allSubCats.map((subCat) => ({
     label: subCat.name,
     value: subCat._id,
-  }));
+  })), [allSubCats]);
 
   const currentSubcatValues = subcategoryOptions.filter((opt) =>
     values.subcategory_ids.includes(opt.value)
@@ -429,7 +437,7 @@ export default function EditPostForm({ postId, onPostUpdated, onCancel }) {
 
     if (isInitialLoading) {
         return (
-            <div className="flex justify-center items-center h-40 text-red-600">
+            <div className="flex justify-center items-center h-40 text-blue-600">
                 <Loader2 className="w-6 h-6 mr-2 animate-spin" />
                 Loading post data...
             </div>
@@ -456,14 +464,12 @@ export default function EditPostForm({ postId, onPostUpdated, onCancel }) {
           </div>
         )}
 
-        {/* Display Current or Preview Image */}
         {imagePreviewUrl && (
           <div className="relative w-full max-w-sm h-40 overflow-hidden rounded-lg shadow-md">
             <Image
               src={imagePreviewUrl}
               alt="Featured Preview"
-              height={300}
-              width={400}
+              fill
               className="w-full h-full object-cover"
             />
             <button
@@ -505,7 +511,6 @@ export default function EditPostForm({ postId, onPostUpdated, onCancel }) {
           </div>
         )}
 
-        {/* Fallback/Manual URL Input */}
         <input
           name="featured_image"
           value={values.featured_image}
@@ -515,7 +520,6 @@ export default function EditPostForm({ postId, onPostUpdated, onCancel }) {
           className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-500 text-sm"
         />
       </div>
-      {/* END FEATURED IMAGE UPLOAD SECTION */}
 
       <div>
         <label className="block text-sm font-medium mb-1">Title *</label>
@@ -570,18 +574,31 @@ export default function EditPostForm({ postId, onPostUpdated, onCancel }) {
         />
       </div>
 
-      <div>
-        <label className="block text-sm font-medium mb-1">Author *</label>
-        <Select
-          options={authorOptions}
-          value={currentAuthorValue}
-          onChange={(newValue) =>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium mb-1">Author *</label>
+          <Select
+            options={authorOptions}
+            value={currentAuthorValue}
+            onChange={(newValue) =>
             handleSingleSelectChange("author_id", newValue)
-          }
-          placeholder="Select an Author"
-          isSearchable={true}
-          isClearable={false}
-        />
+            }
+            placeholder="Select an Author"
+            isSearchable={true}
+            isClearable={false}
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-1">Status</label>
+          <Select
+            options={statusOptions}
+            value={currentStatusValue}
+            onChange={(newValue) => handleSingleSelectChange("status", newValue)}
+            placeholder="Select Status"
+            isClearable={false}
+          />
+        </div>
       </div>
 
       <div>
@@ -615,29 +632,39 @@ export default function EditPostForm({ postId, onPostUpdated, onCancel }) {
         />
       </div>
 
-      <div>
-        <label className="block text-sm font-medium mb-1">Status</label>
-        <Select
-          options={statusOptions}
-          value={currentStatusValue}
-          onChange={(newValue) => handleSingleSelectChange("status", newValue)}
-          placeholder="Select Status"
-          isClearable={false}
-        />
-      </div>
+      {/* Permissions Section (New Grid Layout) */}
+      <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+        <label className="block text-sm font-bold text-gray-700 mb-3">Permissions & Settings</label>
+        
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+          <ToggleSwitch
+            name="is_featured"
+            label="Is Featured"
+            checked={permissions.is_featured}
+            onChange={handlePermissionChange}
+          />
 
-      <div className="flex items-center gap-2">
-        <input
-          id="comments"
-          name="comments_enabled"
-          type="checkbox"
-          checked={values.comments_enabled}
-          onChange={handleChange}
-          className="h-4 w-4 text-red-600 focus:ring-red-500 border-gray-300 rounded"
-        />
-        <label htmlFor="comments" className="text-sm select-none">
-          Enable comments
-        </label>
+          <ToggleSwitch
+            name="is_premium"
+            label="Is Premium"
+            checked={permissions.is_premium}
+            onChange={handlePermissionChange}
+          />
+
+          <ToggleSwitch
+            name="is_slide_article"
+            label="Is Slide Article"
+            checked={permissions.is_slide_article}
+            onChange={handlePermissionChange}
+          />
+
+          <ToggleSwitch
+            name="comments_enabled"
+            label="Enable Comments"
+            checked={values.comments_enabled}
+            onChange={handleChange}
+          />
+        </div>
       </div>
 
       <div className="flex justify-end gap-3 pt-2">
@@ -653,7 +680,6 @@ export default function EditPostForm({ postId, onPostUpdated, onCancel }) {
         <button
           type="submit"
           disabled={loading || imageUploadLoading}
-          // Changed color to blue to visually differentiate from the red 'Add Post' button
           className="px-4 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-60 transition" 
         >
           {loading ? (

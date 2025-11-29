@@ -4,15 +4,13 @@
 import React, { useState, useEffect } from "react";
 import { X, CheckCircle, AlertCircle, Info, AlertTriangle } from "lucide-react";
 
-const NotificationPopup = ({ 
-  message = "Notification message", 
-  type = "info", 
+const NotificationPopup = ({
+  message = "Notification message",
+  type = "info",
   duration = 5000,
-  onClose = () => {}, 
-  show = true 
+  onClose = () => {},
 }) => {
   const [isVisible, setIsVisible] = useState(false);
-  const [isClosing, setIsClosing] = useState(false);
   const [progress, setProgress] = useState(0);
 
   const typeConfig = {
@@ -45,80 +43,82 @@ const NotificationPopup = ({
       progressColor: "bg-blue-500",
     },
   };
-  
-const config = typeConfig[type] || typeConfig["info"];
-const IconComponent = config.icon;
+
+  const config = typeConfig[type] || typeConfig["info"];
+  const IconComponent = config.icon;
 
   useEffect(() => {
-    if (show) {
-      setIsVisible(true);
-      setIsClosing(false);
-      setProgress(0);
+    const entryTimer = setTimeout(() => setIsVisible(true), 10);
+    
+    const startTime = Date.now();
+    const endTime = startTime + duration;
 
-      const progressInterval = setInterval(() => {
-        setProgress((prev) => {
-          const increment = 100 / (duration / 50);
-          return Math.min(prev + increment, 100);
-        });
-      }, 50);
-
-      const closeTimer = setTimeout(() => {
-        handleClose();
-      }, duration);
-
-      return () => {
+    const progressInterval = setInterval(() => {
+      const now = Date.now();
+      const remaining = endTime - now;
+      const percentage = 100 - (remaining / duration) * 100;
+      
+      if (percentage >= 100) {
+        setProgress(100);
         clearInterval(progressInterval);
-        clearTimeout(closeTimer);
-      };
-    }
-  }, [show, duration]);
+        handleClose();
+      } else {
+        setProgress(percentage);
+      }
+    }, 50);
+
+    return () => {
+      clearTimeout(entryTimer);
+      clearInterval(progressInterval);
+    };
+  }, []);
 
   const handleClose = () => {
-    setIsClosing(true);
+    setIsVisible(false);
+    
     setTimeout(() => {
-      setIsVisible(false);
       onClose();
     }, 300);
   };
 
-  if (!show && !isVisible) return null;
-
   return (
-    <div className="fixed bottom-4 right-4 z-50">
-      <div
-        className={`
-          relative overflow-hidden rounded-lg border shadow-lg backdrop-blur-sm
-          transform transition-all duration-300 ease-out
-          ${config.bgColor} ${config.borderColor}
-          ${isVisible && !isClosing 
-            ? "translate-y-0 opacity-100 scale-100" 
-            : "translate-y-2 opacity-0 scale-95"}
-          min-w-80 max-w-md
-        `}
+    <div
+      className={`
+        relative overflow-hidden rounded-lg border shadow-lg backdrop-blur-sm
+        transform transition-all duration-300 ease-out pointer-events-auto
+        ${config.bgColor} ${config.borderColor}
+        ${isVisible 
+          ? "translate-x-0 opacity-100" 
+          : "translate-x-full opacity-0"} 
+        min-w-[320px] max-w-md w-full mb-3
+      `}
+      role="alert"
+    >
+      {/* Main content */}
+      <div className="p-4 pr-12">
+        <div className="flex items-start space-x-3">
+          <IconComponent className={`w-5 h-5 mt-0.5 flex-shrink-0 ${config.iconColor}`} />
+          <p className="text-sm text-gray-800 leading-relaxed font-medium">
+            {message}
+          </p>
+        </div>
+      </div>
+
+      {/* Close button */}
+      <button
+        onClick={handleClose}
+        className="absolute top-3 right-3 p-1 rounded-full hover:bg-black/5 transition-colors duration-200"
+        aria-label="Close notification"
       >
-        {/* Main content */}
-        <div className="p-4 pr-12">
-          <div className="flex items-start space-x-3">
-            <IconComponent className={`w-5 h-5 mt-0.5 ${config.iconColor}`} />
-            <p className="text-sm text-gray-800 leading-relaxed">{message}</p>
-          </div>
-        </div>
+        <X className="w-4 h-4 text-gray-500" />
+      </button>
 
-        {/* Close button */}
-        <button
-          onClick={handleClose}
-          className="absolute top-3 right-3 p-1 rounded-full hover:bg-gray-200 transition-colors duration-200"
-        >
-          <X className="w-4 h-4 text-gray-500" />
-        </button>
-
-        {/* Progress bar */}
-        <div className="absolute bottom-0 left-0 w-full h-1 bg-gray-200">
-          <div
-            className={`h-full transition-all duration-100 ease-linear ${config.progressColor}`}
-            style={{ width: `${progress}%` }}
-          />
-        </div>
+      {/* Progress bar */}
+      <div className="absolute bottom-0 left-0 w-full h-1 bg-gray-200/50">
+        <div
+          className={`h-full transition-all duration-75 ease-linear ${config.progressColor}`}
+          style={{ width: `${progress}%` }}
+        />
       </div>
     </div>
   );

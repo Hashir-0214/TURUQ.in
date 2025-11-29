@@ -1,162 +1,33 @@
 // src/components/admin/posts/AddPostForm.jsx
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Save, X, Loader2, Upload } from "lucide-react";
 import Select from "@/components/ui/select/Select";
 import RichTextEditor from "../ui/text-editor/TextEditor";
 import Image from "next/image";
 
+// --- MALAYALAM SLUGIFY UTILS ---
 const MALAYALAM_MAP = {
-  // Vowels (independent)
-  അ: "a",
-  ആ: "aa",
-  ഇ: "i",
-  ഈ: "ee",
-  ഉ: "u",
-  ഊ: "oo",
-  ഋ: "ru",
-  എ: "e",
-  ഏ: "e",
-  ഐ: "ai",
-  ഒ: "o",
-  ഓ: "o",
-  ഔ: "au",
-
-  // Consonants (with inherent 'a')
-  ക: "ka",
-  ഖ: "kha",
-  ഗ: "ga",
-  ഘ: "gha",
-  ങ: "nga",
-  ച: "cha",
-  ഛ: "chha",
-  ജ: "ja",
-  ഝ: "jha",
-  ഞ: "nja",
-  ട: "ta",
-  ഠ: "tha",
-  ഡ: "da",
-  ഢ: "dha",
-  ണ: "na",
-  ത: "ta",
-  ഥ: "tha",
-  ദ: "da",
-  ധ: "dha",
-  ന: "na",
-  പ: "pa",
-  ഫ: "pha",
-  ബ: "ba",
-  ഭ: "bha",
-  മ: "ma",
-  യ: "ya",
-  ര: "ra",
-  ല: "la",
-  വ: "va",
-  ശ: "sha",
-  ഷ: "sha",
-  സ: "sa",
-  ഹ: "ha",
-  ള: "la",
-  ഴ: "zha",
-  റ: "ra",
-
-  // Chillu characters (consonants without inherent vowel)
-  ൺ: "n",
-  ൻ: "n",
-  ർ: "r",
-  ൽ: "l",
-  ൾ: "l",
-  ൿ: "k",
-
-  // Vowel signs (modify preceding consonant)
-  "ാ": "aa",
-  "ി": "i",
-  "ീ": "ee",
-  "ു": "u",
-  "ൂ": "oo",
-  "ൃ": "ru",
-  "െ": "e",
-  "േ": "e",
-  "ൈ": "ai",
-  "ൊ": "o",
-  "ോ": "o",
-  "ൗ": "au",
-  "ൌ": "au",
-
-  // Other signs
-  "ം": "m",
-  "ഃ": "h",
-  "്": "", // Virama removes inherent 'a'
-
-  // Digits
-  "൦": "0",
-  "൧": "1",
-  "൨": "2",
-  "൩": "3",
-  "൪": "4",
-  "൫": "5",
-  "൬": "6",
-  "൭": "7",
-  "൮": "8",
-  "൯": "9",
+  അ: "a", ആ: "aa", ഇ: "i", ഈ: "ee", ഉ: "u", ഊ: "oo", ഋ: "ru", എ: "e", ഏ: "e", ഐ: "ai",
+  ഒ: "o", ഓ: "o", ഔ: "au", ക: "ka", ഖ: "kha", ഗ: "ga", ഘ: "gha", ങ: "nga", ച: "cha",
+  ഛ: "chha", ജ: "ja", ഝ: "jha", ഞ: "nja", ട: "ta", ഠ: "tha", ഡ: "da", ഢ: "dha", ണ: "na",
+  ത: "ta", ഥ: "tha", ദ: "da", ധ: "dha", ന: "na", പ: "pa", ഫ: "pha", ബ: "ba", ഭ: "bha",
+  മ: "ma", യ: "ya", ര: "ra", ല: "la", വ: "va", ശ: "sha", ഷ: "sha", സ: "sa", ഹ: "ha",
+  ള: "la", ഴ: "zha", റ: "ra", ൺ: "n", ൻ: "n", ർ: "r", ൽ: "l", ൾ: "l", ൿ: "k",
+  "ാ": "aa", "ി": "i", "ീ": "ee", "ു": "u", "ൂ": "oo", "ൃ": "ru", "െ": "e", "േ": "e",
+  "ൈ": "ai", "ൊ": "o", "ോ": "o", "ൗ": "au", "ൌ": "au", "ം": "m", "ഃ": "h", "്": "",
+  "0": "0", "1": "1", "2": "2", "3": "3", "4": "4", "5": "5", "6": "6", "7": "7", "8": "8", "9": "9"
 };
 
-// Consonants without inherent vowel
 const CONSONANTS = new Set([
-  "ക",
-  "ഖ",
-  "ഗ",
-  "ഘ",
-  "ങ",
-  "ച",
-  "ഛ",
-  "ജ",
-  "ഝ",
-  "ഞ",
-  "ട",
-  "ഠ",
-  "ഡ",
-  "ഢ",
-  "ണ",
-  "ത",
-  "ഥ",
-  "ദ",
-  "ധ",
-  "ന",
-  "പ",
-  "ഫ",
-  "ബ",
-  "ഭ",
-  "മ",
-  "യ",
-  "ര",
-  "ല",
-  "വ",
-  "ശ",
-  "ഷ",
-  "സ",
-  "ഹ",
-  "ള",
-  "ഴ",
-  "റ",
+  "ക", "ഖ", "ഗ", "ഘ", "ങ", "ച", "ഛ", "ജ", "ഝ", "ഞ", "ട", "ഠ", "ഡ", "ഢ", "ണ",
+  "ത", "ഥ", "ദ", "ധ", "ന", "പ", "ഫ", "ബ", "ഭ", "മ", "യ", "ര", "ല", "വ", "ശ",
+  "ഷ", "സ", "ഹ", "ള", "ഴ", "റ"
 ]);
 
-// Vowel signs that modify consonants
 const VOWEL_SIGNS = new Set([
-  "ാ",
-  "ി",
-  "ീ",
-  "ു",
-  "ൂ",
-  "ൃ",
-  "െ",
-  "േ",
-  "ൈ",
-  "ൊ",
-  "ോ",
-  "ൗ",
-  "ൌ",
+  "ാ", "ി", "ീ", "ു", "ൂ", "ൃ", "െ", "േ", "ൈ", "ൊ", "ോ", "ൗ", "ൌ"
 ]);
 
 const VIRAMA = "്";
@@ -171,66 +42,63 @@ const slugify = (text) => {
     const char = normalized[i];
     const nextChar = normalized[i + 1];
 
-    // Check if current character is a consonant
     if (CONSONANTS.has(char)) {
       const baseConsonant = MALAYALAM_MAP[char];
 
-      // Check if followed by virama (removes inherent 'a')
       if (nextChar === VIRAMA) {
-        result += baseConsonant.slice(0, -1); // Remove the 'a'
-        i++; // Skip the virama
+        result += baseConsonant.slice(0, -1);
+        i++; 
         continue;
       }
 
-      // Check if followed by vowel sign
       if (VOWEL_SIGNS.has(nextChar)) {
         const consonantWithoutA = baseConsonant.slice(0, -1);
         const vowelSound = MALAYALAM_MAP[nextChar];
         result += consonantWithoutA + vowelSound;
-        i++; // Skip the vowel sign
+        i++;
         continue;
       }
 
-      // Just the consonant with inherent 'a'
       result += baseConsonant;
     }
-    // Handle other characters
     else if (MALAYALAM_MAP[char] !== undefined) {
       result += MALAYALAM_MAP[char];
     } else {
-      // Keep non-Malayalam characters as is
       result += char;
     }
   }
-
-  // Apply standard slug rules
   return result
     .trim()
     .replace(/\s+/g, "-")
     .replace(/[^\w\-]+/g, "")
     .replace(/\-\-+/g, "-")
-    .replace(/^-+|-+$/g, ""); // Remove leading/trailing hyphens
+    .replace(/^-+|-+$/g, "");
 };
+// --- END UTILS ---
+
+// --- NEW TOGGLE COMPONENT ---
+const ToggleSwitch = ({ label, name, checked, onChange }) => (
+  <label className="inline-flex items-center cursor-pointer group p-2 rounded-lg hover:bg-white hover:shadow-sm transition-all border border-transparent hover:border-gray-200">
+    <input
+      type="checkbox"
+      name={name}
+      className="sr-only peer"
+      checked={checked}
+      onChange={onChange}
+    />
+    <div className="relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-red-100 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-600"></div>
+    <span className="ms-3 text-sm font-medium text-gray-700 group-hover:text-gray-900 select-none">
+      {label}
+    </span>
+  </label>
+);
+// --- END COMPONENT ---
 
 const API_KEY = process.env.NEXT_PUBLIC_API_KEY;
 const API_HEADERS = { "x-api-key": API_KEY };
 
-const fetchAuthors = async () => {
-  const res = await fetch("/api/admin/authors", { headers: API_HEADERS });
-  if (!res.ok) throw new Error("Failed to fetch authors");
-  return res.json();
-};
-
-const fetchSubcategories = async () => {
-  const res = await fetch("/api/admin/subcategories", {
-    method: "GET",
-    headers: API_HEADERS,
-  });
-  if (!res.ok) throw new Error("Failed to fetch subcategories");
-  return res.json();
-};
-
 export default function AddPostForm({ onPostAdded, onCancel }) {
+  // Main Values
   const [values, setValues] = useState({
     title: "",
     slug: "",
@@ -244,45 +112,48 @@ export default function AddPostForm({ onPostAdded, onCancel }) {
     comments_enabled: true,
   });
 
-  // State for image handling
+  // New Permissions State
+  const [permissions, setPermissions] = useState({
+    is_featured: false,
+    is_premium: false,
+    is_slide_article: false,
+  });
+
   const [selectedFile, setSelectedFile] = useState(null);
   const [imageUploadLoading, setImageUploadLoading] = useState(false);
   const [imageError, setImageError] = useState("");
-
   const [authors, setAuthors] = useState([]);
   const [allSubCats, setAllSubCats] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  const [loading, setLoading] = useState(false); // Main form submission loading
-  const [error, setError] = useState(""); // Main form error
-
+  // Load Authors and Subcategories
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [authorsData, subcategoriesData] = await Promise.all([
-          fetchAuthors(),
-          fetchSubcategories(),
+        const [authorsRes, subcatsRes] = await Promise.all([
+          fetch("/api/admin/authors", { headers: API_HEADERS }),
+          fetch("/api/admin/subcategories", { headers: API_HEADERS }),
         ]);
 
-        const authorsList = authorsData.data || authorsData;
-        const subCatsList = subcategoriesData.data || subcategoriesData;
+        const aData = await authorsRes.json();
+        const sData = await subcatsRes.json();
 
-        setAuthors(Array.isArray(authorsList) ? authorsList : []);
-        setAllSubCats(Array.isArray(subCatsList) ? subCatsList : []);
+        setAuthors(Array.isArray(aData.data) ? aData.data : []);
+        setAllSubCats(Array.isArray(sData) ? sData : []); 
       } catch (err) {
-        console.error("Error loading data:", err);
-        setError("Failed to load form data");
-        setAuthors([]);
-        setAllSubCats([]);
+        console.error("Error loading form data", err);
       }
     };
     loadData();
   }, []);
 
+  // Auto-slugify title
   useEffect(() => {
-    if (values.title) {
+    if (values.title && !values.slug) {
       setValues((s) => ({ ...s, slug: slugify(values.title) }));
     }
-  }, [values.title]);
+  }, [values.title, values.slug]);
 
   const handleChange = (e) => {
     if (typeof e === "string") {
@@ -297,44 +168,41 @@ export default function AddPostForm({ onPostAdded, onCancel }) {
     setValues((s) => ({ ...s, [name]: type === "checkbox" ? checked : value }));
   };
 
-  // New handler for file input
+  const handlePermissionChange = (e) => {
+    const { name, checked } = e.target;
+    setPermissions((prev) => ({
+      ...prev,
+      [name]: checked,
+    }));
+  };
+
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
     if (file) {
       setSelectedFile(file);
       setImageError("");
-      // Clear current image URL in state if a new file is selected
       setValues((s) => ({ ...s, featured_image: "" }));
-    } else {
-      setSelectedFile(null);
     }
   };
 
-  // Function to upload image to the server/Cloudinary
   const uploadImage = useCallback(async (file) => {
     setImageUploadLoading(true);
     setImageError("");
-
     try {
       const formData = new FormData();
       formData.append("file", file);
 
-      // Call the new API route
       const res = await fetch("/api/admin/posts/imageUpload", {
         method: "POST",
-        headers: API_HEADERS, // Pass API key for server auth
+        headers: API_HEADERS,
         body: formData,
       });
 
       const json = await res.json();
-      if (!res.ok) throw new Error(json.message || "Image upload failed");
-
-      // Success: return the secured URL
+      if (!res.ok) throw new Error(json.message || "Upload failed");
       return json.imageUrl;
     } catch (err) {
-      console.error("Image upload error:", err);
       setImageError(err.message);
-      setValues((s) => ({ ...s, featured_image: "" })); // Clear URL on error
       return null;
     } finally {
       setImageUploadLoading(false);
@@ -356,7 +224,6 @@ export default function AddPostForm({ onPostAdded, onCancel }) {
       if (!res.ok)
         throw new Error(json.message || "Inline image upload failed");
 
-      // Success: return the secured URL
       return json.imageUrl;
     } catch (err) {
       console.error("Inline image upload error:", err);
@@ -398,18 +265,10 @@ export default function AddPostForm({ onPostAdded, onCancel }) {
     }
 
     let finalImageUrl = values.featured_image;
-
     if (selectedFile) {
-      // Stop if image upload is already in progress, though the button is disabled, this is a safety check
-      if (imageUploadLoading) {
-        setLoading(false);
-        return;
-      }
-
       const url = await uploadImage(selectedFile);
-
       if (!url) {
-        setLoading(false);
+        setLoading(false); 
         return;
       }
       finalImageUrl = url;
@@ -417,46 +276,43 @@ export default function AddPostForm({ onPostAdded, onCancel }) {
 
     const payload = {
       ...values,
-      featured_image: finalImageUrl, // Use the final confirmed URL
-      author_id: values.author_id === "" ? null : values.author_id,
+      featured_image: finalImageUrl,
+      author_id: values.author_id || null,
       tags: values.tags
         .split(",")
         .map((t) => t.trim())
         .filter(Boolean),
+      permissions: permissions, 
     };
 
     try {
       const res = await fetch("/api/admin/posts", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...API_HEADERS,
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
 
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error || "Server error");
+      if (!res.ok)
+        throw new Error(json.error || json.message || "Server error");
 
       onPostAdded(json.data);
     } catch (err) {
       setError(err.message);
     } finally {
       setLoading(false);
-      // Clear file selection after successful submission
-      if (finalImageUrl) setSelectedFile(null);
     }
   };
 
-  // ADDED: Definition for Author Select options (Missing in original code)
-  const authorOptions = authors.map((author) => ({
+  // Options Helpers
+  const authorOptions = useMemo(() => authors.map((author) => ({
     label: author.name,
     value: author._id,
-  }));
+  })), [authors]);
+
   const currentAuthorValue =
     authorOptions.find((opt) => opt.value === values.author_id) || null;
 
-  // ADDED: Definition for Status Select options (Missing in original code)
   const statusOptions = [
     { label: "Draft", value: "draft" },
     { label: "Published", value: "published" },
@@ -465,16 +321,15 @@ export default function AddPostForm({ onPostAdded, onCancel }) {
   const currentStatusValue =
     statusOptions.find((opt) => opt.value === values.status) || null;
 
-  const subcategoryOptions = allSubCats.map((subCat) => ({
+  const subcategoryOptions = useMemo(() => allSubCats.map((subCat) => ({
     label: subCat.name,
-    value: subCat._id, // Mongoose ID
-  }));
+    value: subCat._id,
+  })), [allSubCats]);
 
   const currentSubcatValues = subcategoryOptions.filter((opt) =>
     values.subcategory_ids.includes(opt.value)
   );
 
-  // URL for image preview (either uploaded URL or local file preview)
   const imagePreviewUrl = values.featured_image
     ? values.featured_image
     : selectedFile
@@ -501,15 +356,13 @@ export default function AddPostForm({ onPostAdded, onCancel }) {
           </div>
         )}
 
-        {/* Display Current or Preview Image */}
         {imagePreviewUrl && (
-          <div className="relative w-full max-w-sm h-40 overflow-hidden rounded-lg shadow-md">
+          <div className="relative w-full max-w-sm h-40 overflow-hidden rounded-lg shadow-md border bg-white">
             <Image
               src={imagePreviewUrl}
               alt="Featured Preview"
-              height={100}
-              width={100}
-              className="w-full h-full object-cover"
+              fill
+              className="object-cover"
             />
             <button
               type="button"
@@ -518,7 +371,7 @@ export default function AddPostForm({ onPostAdded, onCancel }) {
                 setValues((s) => ({ ...s, featured_image: "" }));
                 setImageError("");
               }}
-              className="absolute top-1 right-1 bg-red-600 text-white p-1 rounded-full hover:bg-red-700 transition"
+              className="absolute top-1 right-1 bg-red-600 text-white p-1 rounded-full hover:bg-red-700 transition z-10"
               aria-label="Remove Image"
             >
               <X className="w-4 h-4" />
@@ -526,62 +379,52 @@ export default function AddPostForm({ onPostAdded, onCancel }) {
           </div>
         )}
 
-        <p className="text-xs text-gray-500">
-          Select a file to upload or enter a public URL below.
-        </p>
-
         <input
           type="file"
           onChange={handleFileChange}
           accept="image/*"
           disabled={imageUploadLoading || !!values.featured_image}
-          className="w-full text-sm text-gray-500
-                  file:mr-4 file:py-2 file:px-4
-                  file:rounded-md file:border-0
-                  file:text-sm file:font-semibold
-                  file:bg-red-50 file:text-red-700
-                  hover:file:bg-red-100"
+          className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100"
         />
 
         {imageUploadLoading && (
           <div className="flex items-center text-red-600 text-sm mt-1">
-            <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Uploading to
-            Cloudinary...
+            <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Uploading to Cloudinary...
           </div>
         )}
 
-        {/* Fallback/Manual URL Input */}
         <input
           name="featured_image"
           value={values.featured_image}
           onChange={handleChange}
-          placeholder="https://existing-image-url.com/image.jpg"
+          placeholder="Or enter image URL..."
           disabled={imageUploadLoading || !!selectedFile}
-          className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-500 text-sm"
-        />
-      </div>
-      {/* END FEATURED IMAGE UPLOAD SECTION */}
-
-      <div>
-        <label className="block text-sm font-medium mb-1">Title *</label>
-        <input
-          name="title"
-          value={values.title}
-          onChange={handleChange}
-          required
-          className="w-full border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-500"
+          className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm"
         />
       </div>
 
-      <div>
-        <label className="block text-sm font-medium mb-1">Slug *</label>
-        <input
-          name="slug"
-          value={values.slug}
-          onChange={handleChange}
-          required
-          className="w-full border border-gray-300 rounded-md px-3 py-2 bg-gray-50"
-        />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium mb-1">Title *</label>
+          <input
+            name="title"
+            value={values.title}
+            onChange={handleChange}
+            required
+            className="w-full border border-gray-300 rounded-md px-3 py-2 focus:ring-red-500 focus:border-red-500"
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-1">Slug *</label>
+          <input
+            name="slug"
+            value={values.slug}
+            onChange={handleChange}
+            required
+            className="w-full border border-gray-300 rounded-md px-3 py-2 bg-gray-50"
+          />
+        </div>
       </div>
 
       <div>
@@ -596,7 +439,7 @@ export default function AddPostForm({ onPostAdded, onCancel }) {
       </div>
 
       <div>
-        <label className="block text-sm font-medium mb-1">Content</label>
+        <label className="block text-sm font-medium mb-1">Content *</label>
         <RichTextEditor
           value={values.content}
           onChange={handleChange}
@@ -604,42 +447,44 @@ export default function AddPostForm({ onPostAdded, onCancel }) {
         />
       </div>
 
-      <div>
-        <label className="block text-sm font-medium mb-1">Author *</label>
-        <Select
-          options={authorOptions}
-          value={currentAuthorValue}
-          onChange={(newValue) =>
-            handleSingleSelectChange("author_id", newValue)
-          }
-          placeholder="Select an Author"
-          isSearchable={true}
-          isClearable={false}
-        />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium mb-1">Author *</label>
+          <Select
+            options={authorOptions}
+            value={currentAuthorValue}
+            onChange={(newValue) => handleSingleSelectChange("author_id", newValue)}
+            placeholder="Select an Author"
+            isSearchable={true}
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium mb-1">Status</label>
+          <Select
+            options={statusOptions}
+            value={currentStatusValue}
+            onChange={(newValue) => handleSingleSelectChange("status", newValue)}
+            placeholder="Select Status"
+            isClearable={false}
+          />
+        </div>
       </div>
 
       <div>
-        <label className="block text-sm font-medium mb-1">
-          Sub-categories (Multi-select) *
-        </label>
+        <label className="block text-sm font-medium mb-1">Sub-categories *</label>
         <Select
           options={subcategoryOptions}
           value={currentSubcatValues}
-          onChange={(newValue) =>
-            handleMultiSelectChange("subcategory_ids", newValue)
-          }
-          placeholder="Select one or more subcategories"
+          onChange={(newValue) => handleMultiSelectChange("subcategory_ids", newValue)}
+          placeholder="Select categories"
           isMulti={true}
           isSearchable={true}
-          size="md"
-          variant="default"
         />
       </div>
 
       <div>
-        <label className="block text-sm font-medium mb-1">
-          Tags (comma separated)
-        </label>
+        <label className="block text-sm font-medium mb-1">Tags (comma separated)</label>
         <input
           name="tags"
           value={values.tags}
@@ -649,55 +494,63 @@ export default function AddPostForm({ onPostAdded, onCancel }) {
         />
       </div>
 
-      <div>
-        <label className="block text-sm font-medium mb-1">Status</label>
-        <Select
-          options={statusOptions}
-          value={currentStatusValue}
-          onChange={(newValue) => handleSingleSelectChange("status", newValue)}
-          placeholder="Select Status"
-          isClearable={false}
-        />
+      {/* MODIFIED: Permissions Section with Slide Toggles */}
+      <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+        <label className="block text-sm font-bold text-gray-700 mb-3">Permissions & Settings</label>
+        
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+          <ToggleSwitch
+            name="is_featured"
+            label="Is Featured"
+            checked={permissions.is_featured}
+            onChange={handlePermissionChange}
+          />
+
+          <ToggleSwitch
+            name="is_premium"
+            label="Is Premium"
+            checked={permissions.is_premium}
+            onChange={handlePermissionChange}
+          />
+
+          <ToggleSwitch
+            name="is_slide_article"
+            label="Is Slide Article"
+            checked={permissions.is_slide_article}
+            onChange={handlePermissionChange}
+          />
+
+          <ToggleSwitch
+            name="comments_enabled"
+            label="Enable Comments"
+            checked={values.comments_enabled}
+            onChange={handleChange}
+          />
+        </div>
       </div>
 
-      <div className="flex items-center gap-2">
-        <input
-          id="comments"
-          name="comments_enabled"
-          type="checkbox"
-          checked={values.comments_enabled}
-          onChange={handleChange}
-          className="h-4 w-4"
-        />
-        <label htmlFor="comments" className="text-sm">
-          Enable comments
-        </label>
-      </div>
-
-      <div className="flex justify-end gap-3 pt-2">
+      <div className="flex justify-end gap-3 pt-4 border-t">
         <button
           type="button"
           onClick={onCancel}
           disabled={loading || imageUploadLoading}
-          className="px-4 py-2 text-sm border rounded-md hover:bg-gray-100"
+          className="px-4 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50"
         >
-          <X className="inline w-4 h-4 mr-1" /> Cancel
+          Cancel
         </button>
 
         <button
           type="submit"
           disabled={loading || imageUploadLoading}
-          className="px-4 py-2 text-sm bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-60"
+          className="px-4 py-2 text-sm bg-red-600 text-white rounded-md hover:bg-red-700 disabled:opacity-60 flex items-center"
         >
           {loading ? (
             <>
-              <Loader2 className="inline w-4 h-4 mr-1 animate-spin" />
-              Saving…
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Saving...
             </>
           ) : (
             <>
-              <Save className="inline w-4 h-4 mr-1" />
-              Save Post
+              <Save className="w-4 h-4 mr-2" /> Save Post
             </>
           )}
         </button>
