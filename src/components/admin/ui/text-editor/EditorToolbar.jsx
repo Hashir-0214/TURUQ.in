@@ -25,8 +25,8 @@ export default function EditorToolbar({
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [showHighlightPicker, setShowHighlightPicker] = useState(false);
   
-  // Close pickers when clicking outside
   const toolbarRef = useRef(null);
+  
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (toolbarRef.current && !toolbarRef.current.contains(event.target)) {
@@ -139,9 +139,9 @@ const ColorPopup = ({ colors, onSelect, onClose }) => (
         style={{ background: color }}
         onMouseDown={(e) => {
           e.preventDefault(); // Prevent focus loss
-          onSelect(color);
+          // Removed manual onSelect() call here to prevent double firing
         }}
-        onClick={() => onSelect(color)}
+        onClick={() => onSelect(color)} // Only fire here
         aria-label={`Select color ${color}`}
       />
     ))}

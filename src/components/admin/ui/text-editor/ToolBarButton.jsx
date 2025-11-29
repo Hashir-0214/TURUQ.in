@@ -12,15 +12,14 @@ const ToolbarButton = ({
 
   return (
     <button
-      type="button" // Critical: prevents form submission
+      type="button"
       onMouseDown={(e) => {
-        e.preventDefault(); // Prevents focus loss from editor when clicking button
-        onClick();
+        e.preventDefault();
       }}
       onClick={onClick}
       title={title}
       aria-label={title}
-      aria-pressed={isActive} // Accessibility: tells screen reader state
+      aria-pressed={isActive}
       className={`
         p-[8px] bg-none border border-transparent rounded-lg cursor-pointer flex items-center justify-center text-slate-700 transition-all duration-200 ease-out
         hover:bg-blue-100 hover:border-blue-300 hover:text-blue-700 hover:-translate-y-[1px]

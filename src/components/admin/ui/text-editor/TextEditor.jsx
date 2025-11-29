@@ -1,10 +1,10 @@
 // src/components/admin/ui/text-editor/TextEditor.jsx
 import React, { useState, useRef, useEffect, useCallback } from "react";
-import "./textEditor.css"; // Ensure case matches file system
+import "./textEditor.css"; 
 import EditorToolbar from "./EditorToolbar";
-import LinkModal from "./modal/LinkModal";
-import ImageModal from "./modal/ImageModal";
-import TableModal from "./modal/TableModal";
+import LinkModal from "./modals/LinkModal"; // Checked path consistency
+import ImageModal from "./modals/ImageModal";
+import TableModal from "./modals/TableModal";
 
 const RichTextEditor = ({ value, onChange, onImageUpload }) => {
   const [modals, setModals] = useState({ link: false, image: false, table: false, find: false });
@@ -90,8 +90,12 @@ const RichTextEditor = ({ value, onChange, onImageUpload }) => {
   }, []);
 
   const execCommand = (command, value = null) => {
-    editorRef.current?.focus();
-    
+    // 1. Ensure we have focus (defensive programming)
+    if (document.activeElement !== editorRef.current) {
+        editorRef.current?.focus();
+    }
+
+    // 2. Execute
     if (command === "undo" || command === "redo") {
         document.execCommand(command);
     } else if (command === "formatBlock" && value === "h2") {
@@ -101,6 +105,7 @@ const RichTextEditor = ({ value, onChange, onImageUpload }) => {
         document.execCommand(command, false, value);
     }
     
+    // 3. Update State
     checkActiveCommands();
     handleInput();
   };
@@ -151,8 +156,8 @@ const RichTextEditor = ({ value, onChange, onImageUpload }) => {
     }
   };
 
-  // --- Utils ---
   const cleanHtmlContent = (html) => {
+    // Basic cleaning to prevent layout breakage
     let cleaned = html.replace(/<div[^>]*>/g, "").replace(/<\/div>/g, "");
     if (!cleaned.match(/^\s*<(p|h[1-6]|ul|ol|table|blockquote|pre|img)/i) && cleaned.trim()) {
       cleaned = `<p>${cleaned}</p>`;

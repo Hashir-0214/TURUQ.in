@@ -76,7 +76,7 @@ const slugify = (text) => {
 };
 // --- END UTILS ---
 
-// --- NEW TOGGLE COMPONENT ---
+// --- TOGGLE COMPONENT ---
 const ToggleSwitch = ({ label, name, checked, onChange }) => (
   <label className="inline-flex items-center cursor-pointer group p-2 rounded-lg hover:bg-white hover:shadow-sm transition-all border border-transparent hover:border-gray-200">
     <input
@@ -123,24 +123,62 @@ export default function AddPostForm({ onPostAdded, onCancel }) {
   const [imageUploadLoading, setImageUploadLoading] = useState(false);
   const [imageError, setImageError] = useState("");
   const [authors, setAuthors] = useState([]);
-  const [allSubCats, setAllSubCats] = useState([]);
+  
+  // State for the combined options
+  const [categoryOptions, setCategoryOptions] = useState([]);
+  
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // Load Authors and Subcategories
+  // Load Authors, Categories, and Subcategories
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [authorsRes, subcatsRes] = await Promise.all([
+        const [authorsRes, catsRes, subcatsRes] = await Promise.all([
           fetch("/api/admin/authors", { headers: API_HEADERS }),
+          fetch("/api/admin/categories", { headers: API_HEADERS }),
           fetch("/api/admin/subcategories", { headers: API_HEADERS }),
         ]);
 
         const aData = await authorsRes.json();
-        const sData = await subcatsRes.json();
+        const catsData = await catsRes.json();
+        const subCatsData = await subcatsRes.json();
 
         setAuthors(Array.isArray(aData.data) ? aData.data : []);
-        setAllSubCats(Array.isArray(sData) ? sData : []); 
+
+        // Process Categories and Subcategories
+        const allCategories = Array.isArray(catsData) ? catsData : [];
+        const allSubCategories = Array.isArray(subCatsData) ? subCatsData : [];
+
+        // 1. Identify "Parent" category IDs (Categories that have subcategories)
+        const parentCategoryIds = new Set(allSubCategories.map(sub => sub.parent_id));
+
+        // 2. Filter "Leaf" Categories (Categories that are NOT parents)
+        const leafCategories = allCategories.filter(cat => !parentCategoryIds.has(cat._id));
+
+        // 3. Create Grouped Options for React Select
+        const groupedOptions = [
+          {
+            label: "Main Categories",
+            options: leafCategories.map(cat => ({
+              label: cat.name,
+              value: cat._id,
+              type: 'Category' // Optional: useful if you need to distinguish later
+            }))
+          },
+          {
+            label: "Sub Categories",
+            options: allSubCategories.map(sub => ({
+              label: sub.name,
+              value: sub._id,
+              type: 'SubCategory'
+            }))
+          }
+        ];
+
+        // Filter out empty groups if necessary, or just set state
+        setCategoryOptions(groupedOptions);
+
       } catch (err) {
         console.error("Error loading form data", err);
       }
@@ -238,6 +276,7 @@ export default function AddPostForm({ onPostAdded, onCancel }) {
     }));
   };
 
+  // Updated to handle values from grouped options
   const handleMultiSelectChange = (name, newValue) => {
     setValues((s) => ({
       ...s,
@@ -321,14 +360,12 @@ export default function AddPostForm({ onPostAdded, onCancel }) {
   const currentStatusValue =
     statusOptions.find((opt) => opt.value === values.status) || null;
 
-  const subcategoryOptions = useMemo(() => allSubCats.map((subCat) => ({
-    label: subCat.name,
-    value: subCat._id,
-  })), [allSubCats]);
+  // Helper to find selected values within the grouped options
+  const currentCategoryValues = useMemo(() => {
+    const flatOptions = categoryOptions.flatMap(group => group.options);
+    return flatOptions.filter(opt => values.subcategory_ids.includes(opt.value));
+  }, [categoryOptions, values.subcategory_ids]);
 
-  const currentSubcatValues = subcategoryOptions.filter((opt) =>
-    values.subcategory_ids.includes(opt.value)
-  );
 
   const imagePreviewUrl = values.featured_image
     ? values.featured_image
@@ -472,12 +509,12 @@ export default function AddPostForm({ onPostAdded, onCancel }) {
       </div>
 
       <div>
-        <label className="block text-sm font-medium mb-1">Sub-categories *</label>
+        <label className="block text-sm font-medium mb-1">Categories / Sub-categories *</label>
         <Select
-          options={subcategoryOptions}
-          value={currentSubcatValues}
+          options={categoryOptions}
+          value={currentCategoryValues}
           onChange={(newValue) => handleMultiSelectChange("subcategory_ids", newValue)}
-          placeholder="Select categories"
+          placeholder="Select categories or subcategories"
           isMulti={true}
           isSearchable={true}
         />

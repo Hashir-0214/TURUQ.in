@@ -78,8 +78,8 @@ export default async function ArticlePage({ params }) {
         </div>
       </section>
 
-      <div className="max-w-[1250px] mx-auto flex flex-col lg:flex-row items-start justify-between gap-10 px-1">
-        {/* RIGHT: AUTHOR + SHARE (Mobile: Bottom, Desktop: Right/Sticky) */}
+      <div className="max-w-[1250px] mx-auto flex flex-col lg:flex-row-reverse items-start justify-between gap-10 px-1">
+        {/* LEFT: AUTHOR + SHARE (Mobile: Bottom, Desktop: Right/Sticky) */}
         <aside className="flex flex-col flex-shrink-0 items-center gap-6 w-full lg:w-[300px] lg:sticky lg:top-10 order-2 lg:order-2">
           <div className="w-full border-2 border-black rounded-3xl p-6 text-center bg-white shadow-lg hover:shadow-xl transition-shadow">
             <div className="text-xs font-bold tracking-wider mb-4 text-gray-500 uppercase">
@@ -133,24 +133,26 @@ export default async function ArticlePage({ params }) {
           </button>
         </aside>
 
-        {/* LEFT: CONTENT */}
+        {/* RIGHT: CONTENT */}
         <article className="w-full order-1 lg:order-1">
           <div className="flex flex-wrap items-center justify-between mb-6 gap-4">
+            
+            {/* DYNAMIC CATEGORIES/SUBCATEGORIES DISPLAY */}
             <div className="flex flex-wrap gap-2">
-              {article.tags && article.tags.length > 0 ? (
-                article.tags.slice(0, 3).map((tag, index) => (
-                  <Tag
-                    linkClassName={`text-[11px] md:text-[12px] px-3 py-1`}
-                    link={`/tag/${encodeURIComponent(tag)}`}
-                    key={index}
+              {article.subcategory_ids && article.subcategory_ids.length > 0 ? (
+                article.subcategory_ids.map((subcat) => (
+                  <Tag 
+                    key={subcat._id || subcat.slug} 
+                    link={`/category/${subcat.slug}`}
                   >
-                    {tag}
+                    {subcat.name ? subcat.name.toUpperCase() : "CATEGORY"}
                   </Tag>
                 ))
               ) : (
-                <Tag link="/tag/uncategorized">UNCATEGORIZED</Tag>
+                <Tag link="#">UNCATEGORIZED</Tag>
               )}
             </div>
+
             <div className="flex gap-4 text-xs md:text-sm text-gray-500 font-medium">
               <span>
                 {formatDate(article.published_at || article.created_at)}

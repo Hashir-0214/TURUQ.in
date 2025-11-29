@@ -1,6 +1,6 @@
 // src/components/ui/select/Select.jsx
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { ChevronDown, X, Search, Check } from 'lucide-react';
 
 const Select = ({
@@ -51,15 +51,52 @@ const Select = ({
         }
     }, [isOpen, isSearchable]);
 
-    const filteredOptions = options.filter(opt =>
-        opt.label.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+    // --- NEW LOGIC: FLATTEN GROUPS ---
+    // This hook converts grouped options into a flat list for rendering/keyboard navigation
+    // while preserving the headers as non-selectable items.
+    const flattenedOptions = useMemo(() => {
+        const term = searchTerm.toLowerCase();
+        
+        // check if data is grouped (has .options property)
+        const isGrouped = options.some(opt => opt.options && Array.isArray(opt.options));
+
+        if (!isGrouped) {
+            // Standard flat behavior
+            return options.filter(opt => 
+                opt.label.toLowerCase().includes(term)
+            );
+        }
+
+        // Grouped behavior
+        const result = [];
+        options.forEach(group => {
+            // Filter children within the group
+            const matchingChildren = group.options.filter(opt => 
+                opt.label.toLowerCase().includes(term)
+            );
+
+            // Only add group header if it has matching children
+            if (matchingChildren.length > 0) {
+                // Add the Group Header (flagged as isHeader)
+                result.push({ 
+                    ...group, 
+                    value: `group-${group.label}`, // unique key
+                    isHeader: true 
+                });
+                // Add the Children
+                result.push(...matchingChildren);
+            }
+        });
+        return result;
+    }, [options, searchTerm]);
 
     useEffect(() => {
         setHighlightedIndex(0);
     }, [searchTerm]);
 
     const handleSelect = (option) => {
+        if (option.isHeader) return; // Prevent clicking headers
+
         if (isMulti) {
             const newValue = value || [];
             const exists = newValue.find(v => v.value === option.value);
@@ -101,18 +138,31 @@ const Select = ({
         switch (e.key) {
             case 'ArrowDown':
                 e.preventDefault();
-                setHighlightedIndex(prev =>
-                    prev < filteredOptions.length - 1 ? prev + 1 : prev
-                );
+                setHighlightedIndex(prev => {
+                    let next = prev + 1;
+                    // Skip headers when moving down
+                    while (next < flattenedOptions.length && flattenedOptions[next].isHeader) {
+                        next++;
+                    }
+                    return next < flattenedOptions.length ? next : prev;
+                });
                 break;
             case 'ArrowUp':
                 e.preventDefault();
-                setHighlightedIndex(prev => prev > 0 ? prev - 1 : 0);
+                setHighlightedIndex(prev => {
+                    let next = prev - 1;
+                    // Skip headers when moving up
+                    while (next >= 0 && flattenedOptions[next].isHeader) {
+                        next--;
+                    }
+                    return next >= 0 ? next : 0;
+                });
                 break;
             case 'Enter':
                 e.preventDefault();
-                if (filteredOptions[highlightedIndex]) {
-                    handleSelect(filteredOptions[highlightedIndex]);
+                const option = flattenedOptions[highlightedIndex];
+                if (option && !option.isHeader) {
+                    handleSelect(option);
                 }
                 break;
             case 'Escape':
@@ -125,6 +175,7 @@ const Select = ({
     };
 
     const isSelected = (option) => {
+        if (option.isHeader) return false;
         if (isMulti) {
             return value?.some(v => v.value === option.value);
         }
@@ -138,12 +189,12 @@ const Select = ({
                     {value.map(v => (
                         <span
                             key={v.value}
-                            className="inline-flex items-center gap-1 bg-blue-100 text-blue-700 rounded-md px-2 py-0.5 text-sm font-medium transition-colors hover:bg-blue-200"
+                            className="inline-flex items-center gap-1 bg-red-100 text-red-700 rounded-md px-2 py-0.5 text-sm font-medium transition-colors hover:bg-red-200"
                         >
                             {v.label}
                             <X
                                 size={14}
-                                className="cursor-pointer hover:text-blue-900 transition-colors"
+                                className="cursor-pointer hover:text-red-900 transition-colors"
                                 onClick={(e) => handleRemove(v, e)}
                             />
                         </span>
@@ -151,7 +202,7 @@ const Select = ({
                 </div>
             );
         }
-        if (value) {
+        if (value && !Array.isArray(value)) {
             return <span className="text-gray-900">{value.label}</span>;
         }
         return <span className="text-gray-400">{placeholder}</span>;
@@ -169,7 +220,7 @@ const Select = ({
           transition-all duration-200 ease-in-out
           ${sizeClasses[size]}
           ${variantClasses[variant]}
-          ${isOpen ? 'ring-2 ring-blue-500 border-blue-500' : ''}
+          ${isOpen ? 'ring-2 ring-red-500 border-red-500' : ''}
           ${isDisabled ? 'opacity-50 cursor-not-allowed bg-gray-50' : ''}
         `}
                 onClick={() => !isDisabled && setIsOpen(!isOpen)}
@@ -213,7 +264,7 @@ const Select = ({
                             <input
                                 ref={searchRef}
                                 type="text"
-                                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                                className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
                                 placeholder="Search..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -224,30 +275,45 @@ const Select = ({
                 )}
 
                 <div className="max-h-60 overflow-y-auto p-1">
-                    {filteredOptions.length === 0 ? (
+                    {flattenedOptions.length === 0 ? (
                         <div className="px-4 py-8 text-center text-gray-500">
                             No options found
                         </div>
                     ) : (
-                        filteredOptions.map((option, idx) => (
-                            <div
-                                key={option.value}
-                                className={`
-                  flex items-center justify-between px-4 py-2.5 rounded-md cursor-pointer
-                  transition-all duration-150 ease-in-out
-                  ${isSelected(option) ? 'bg-blue-50 text-blue-700' : 'text-gray-700'}
-                  ${highlightedIndex === idx ? 'bg-gray-100' : ''}
-                  hover:bg-gray-100
-                `}
-                                onClick={() => handleSelect(option)}
-                                onMouseEnter={() => setHighlightedIndex(idx)}
-                            >
-                                <span className="font-medium">{option.label}</span>
-                                {isSelected(option) && (
-                                    <Check size={18} className="text-blue-600" />
-                                )}
-                            </div>
-                        ))
+                        flattenedOptions.map((option, idx) => {
+                            // RENDER GROUP HEADER
+                            if (option.isHeader) {
+                                return (
+                                    <div 
+                                        key={option.value} 
+                                        className="px-4 py-2 text-xs font-bold text-gray-400 uppercase tracking-wider bg-gray-50 select-none"
+                                    >
+                                        {option.label}
+                                    </div>
+                                )
+                            }
+
+                            // RENDER STANDARD OPTION
+                            return (
+                                <div
+                                    key={option.value}
+                                    className={`
+                                      flex items-center justify-between px-4 py-2.5 rounded-md cursor-pointer
+                                      transition-all duration-150 ease-in-out
+                                      ${isSelected(option) ? 'bg-red-50 text-red-700' : 'text-gray-700'}
+                                      ${highlightedIndex === idx ? 'bg-gray-100' : ''}
+                                      hover:bg-gray-100
+                                    `}
+                                    onClick={() => handleSelect(option)}
+                                    onMouseEnter={() => setHighlightedIndex(idx)}
+                                >
+                                    <span className="font-medium">{option.label}</span>
+                                    {isSelected(option) && (
+                                        <Check size={18} className="text-red-600" />
+                                    )}
+                                </div>
+                            );
+                        })
                     )}
                 </div>
             </div>
