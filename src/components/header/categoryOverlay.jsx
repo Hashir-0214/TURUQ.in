@@ -204,19 +204,19 @@ export default function CategoryOverlay({ isOpen, onClose }) {
               <div className="flex flex-wrap gap-2 items-center">
                 {currentSubCategories.length > 0 ? (
                   currentSubCategories.map((sub) => (
-                    <Link
+                    <div
                       key={sub.slug}
-                      href={
-                        activeCategory
-                          ? `/category/${activeCategory.slug}/${sub.slug}`
-                          : "#"
-                      }
-                      onClick={onClose} 
+                      onClick={onClose}
                       onMouseEnter={() => handleSubCategoryHover(sub.slug)}
                       onFocus={() => handleSubCategoryHover(sub.slug)}
                       className="inline-block"
                     >
                       <Tag
+                        link={
+                          activeCategory
+                            ? `/category/${activeCategory.slug}/${sub.slug}`
+                            : "#"
+                        }
                         className={
                           activeSubCategorySlug === sub.slug
                             ? "bg-red-600 text-white"
@@ -225,7 +225,7 @@ export default function CategoryOverlay({ isOpen, onClose }) {
                       >
                         {sub.name}
                       </Tag>
-                    </Link>
+                    </div>
                   ))
                 ) : (
                   <span className="text-gray-400 text-sm italic">
@@ -254,7 +254,6 @@ export default function CategoryOverlay({ isOpen, onClose }) {
                 </p>
               </div>
             ) : (
-              // RESTORED: Responsive Grid (1 col mobile, 2 cols desktop)
               <div className="category-article-card-container">
                 {currentArticles.length > 0 ? (
                   currentArticles.map((article, index) => {
