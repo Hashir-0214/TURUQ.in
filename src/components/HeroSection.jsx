@@ -24,7 +24,6 @@ export default function HeroSection({ articles }) {
   const fadeDuration = 300;
   const slideDuration = 5000; // 5 seconds
 
-  // --- Slide Logic ---
   const changeSlide = (newIndex) => {
     if (newIndex === currentIndex) return;
     setIsFading(true);
@@ -44,7 +43,6 @@ export default function HeroSection({ articles }) {
     changeSlide(newIndex);
   };
 
-  // --- 1. Auto Change Logic ---
   useEffect(() => {
     const timer = setInterval(() => {
       handleNext();
@@ -53,7 +51,6 @@ export default function HeroSection({ articles }) {
     return () => clearInterval(timer);
   }, [currentIndex, totalSlides]);
 
-  // --- 2. Swipe Logic ---
   const onTouchStart = (e) => {
     setTouchEnd(null);
     setTouchStart(e.targetTouches[0].clientX);
