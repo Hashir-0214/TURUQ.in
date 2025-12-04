@@ -86,7 +86,6 @@ const PostSchema = new mongoose.Schema(
 
 // Ensure index for efficient queries on status
 PostSchema.index({ status: 1 });
-PostSchema.index({ slug: 1 });
 
 // Check if the model exists before compiling it to prevent OverwriteModelError in dev
 export default mongoose.models.Post || mongoose.model('Post', PostSchema);
