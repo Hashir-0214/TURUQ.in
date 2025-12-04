@@ -27,6 +27,12 @@ const PostSchema = new mongoose.Schema(
       ref: 'Author',
       required: true,
     },
+    // --- CRITICAL SECTION START ---
+    category_ids: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Category',
+      default: [],
+    }],
     subcategory_ids: [{
       type: mongoose.Schema.Types.ObjectId,
       ref: 'SubCategory',
@@ -75,15 +81,12 @@ const PostSchema = new mongoose.Schema(
   {
     collection: 'posts',
     timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' },
-  },
+  }
 );
 
 // Ensure index for efficient queries on status
 PostSchema.index({ status: 1 });
 PostSchema.index({ slug: 1 });
 
-PostSchema.statics.findPublished = function () {
-  return this.find({ status: 'published' });
-};
-
+// Check if the model exists before compiling it to prevent OverwriteModelError in dev
 export default mongoose.models.Post || mongoose.model('Post', PostSchema);

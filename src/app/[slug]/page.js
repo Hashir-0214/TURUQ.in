@@ -7,11 +7,9 @@ import { notFound } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 
-/* ----------  HELPERS  ---------- */
 const formatDate = (dateString) => {
   if (!dateString) return "N/A";
   const date = new Date(dateString);
-  // Check if date is valid
   if (isNaN(date.getTime())) return "N/A";
   
   return date
@@ -25,38 +23,41 @@ const formatDate = (dateString) => {
 
 const calculateReadTime = (content) => {
   if (!content) return 0;
-  // Safely handle non-string content
   const text = String(content).replace(/<[^>]+>/g, "");
   const wordCount = text.split(/\s+/).length;
   return Math.ceil(wordCount / 200);
 };
 
-// Robust helper to extract valid categories
-const getCategories = (article) => {
-  // 1. Try subcategory_ids (Array)
-  if (Array.isArray(article.subcategory_ids) && article.subcategory_ids.length > 0) {
-    // Filter out unpopulated IDs (strings) or items without slugs
-    const valid = article.subcategory_ids.filter(cat => cat && typeof cat === 'object' && cat.slug);
-    if (valid.length > 0) return valid;
-  }
-  
-  // 2. Try categories (Array - common alternative name)
-  if (Array.isArray(article.categories) && article.categories.length > 0) {
-    const valid = article.categories.filter(cat => cat && typeof cat === 'object' && cat.slug);
-    if (valid.length > 0) return valid;
+const getDisplayCategories = (article) => {
+  const subIds = article.subcategory_ids || [];
+  const catIds = article.category_ids || [];
+
+  if (Array.isArray(subIds) && subIds.length > 0) {
+    return subIds
+      .filter(s => s && s.name)
+      .map(s => ({
+        _id: s._id,
+        name: s.name,
+        link: `/category/${s.parent_id?.slug || 'general'}/${s.slug}`
+      }));
   }
 
-  // 3. Try category (Single Object)
-  if (article.category && typeof article.category === 'object' && article.category.slug) {
-    return [article.category];
+  if (Array.isArray(catIds) && catIds.length > 0) {
+    return catIds
+      .filter(c => c && c.name)
+      .map(c => ({
+        _id: c._id,
+        name: c.name,
+        link: `/category/${c.slug}`
+      }));
   }
 
   return [];
 };
 
-/* ----------  STATIC META  ---------- */
 export async function generateMetadata({ params }) {
-  const { slug } = await params;
+  const resolvedParams = await params;
+  const { slug } = resolvedParams;
   const article = await getArticle(slug);
 
   if (!article) return { title: "Not found" };
@@ -72,14 +73,13 @@ export async function generateMetadata({ params }) {
   };
 }
 
-/* ----------  PAGE  ---------- */
 export default async function ArticlePage({ params }) {
-  const { slug } = await params;
+  const resolvedParams = await params;
+  const { slug } = resolvedParams;
   const article = await getArticle(slug);
 
   if (!article) notFound();
 
-  // Safe Author Handling: Check if populate worked and name exists
   const hasValidAuthor = article.author_id && article.author_id.name;
   
   const author = hasValidAuthor
@@ -92,9 +92,9 @@ export default async function ArticlePage({ params }) {
       };
 
   const readTime = calculateReadTime(article.content);
-  const categories = getCategories(article);
+  
+  const categories = getDisplayCategories(article);
 
-  /* ----------  JSX  ---------- */
   return (
     <main className="mt-8 px-4">
       {/* FEATURED IMAGE */}
@@ -113,7 +113,7 @@ export default async function ArticlePage({ params }) {
 
       <div className="max-w-[1250px] mx-auto flex flex-col lg:flex-row-reverse items-start justify-between gap-10 px-1">
         {/* LEFT: AUTHOR + SHARE */}
-        <aside className="flex flex-col flex-shrink-0 items-center gap-6 w-full lg:w-[300px] lg:sticky lg:top-36 order-2 lg:order-2">
+        <aside className="flex flex-col shrink-0 items-center gap-6 w-full lg:w-[300px] lg:top-36 order-2 lg:order-2">
           <div className="w-full border border-black rounded-3xl p-6 text-center bg-[#ffedd9] transition-shadow font-poppins">
             <div className="text-xs font-bold tracking-wider mb-4 text-gray-500 uppercase">
               Author
@@ -170,17 +170,16 @@ export default async function ArticlePage({ params }) {
             {/* DYNAMIC CATEGORIES */}
             <div className="flex flex-wrap gap-2">
               {categories.length > 0 ? (
-                categories.map((subcat, index) => (
+                categories.map((cat, index) => (
                   <Tag 
-                    // Fallback key index if _id/slug is missing (rare due to filter)
-                    key={subcat._id || subcat.slug || index} 
-                    link={`/category/${subcat.slug}`}
+                    key={cat._id || index} 
+                    link={cat.link}
                   >
-                    {subcat.name ? subcat.name.toUpperCase() : "CATEGORY"}
+                    {cat.name.toUpperCase()}
                   </Tag>
                 ))
               ) : (
-                <Tag link="/#">UNCATEGORIZED</Tag>
+                <Tag link="#">UNCATEGORIZED</Tag>
               )}
             </div>
 
@@ -218,7 +217,6 @@ export default async function ArticlePage({ params }) {
           <h2 className="text-4xl font-oswald mb-10 text-gray-900 uppercase">
             Comments
           </h2>
-          {/* Static content omitted for brevity, logic remains same as provided */}
           <div className="text-gray-500 italic">Comments section placeholder...</div> 
         </section>
       )}

@@ -43,6 +43,7 @@ export async function GET(request) {
     if (postId) {
       const post = await Post.findById(postId)
           .populate('author_id', 'name email avatar')
+          .populate('category_ids', 'name slug') 
           .populate('subcategory_ids', 'name slug')
           .lean();
       if (!post) return NextResponse.json({ message: "Post not found" }, { status: 404 });
@@ -61,6 +62,7 @@ export async function GET(request) {
         .skip(skip)
         .limit(limit)
         .populate('author_id', 'name avatar')
+        .populate('category_ids', 'name')
         .populate('subcategory_ids', 'name')
         .lean();
 
@@ -102,7 +104,6 @@ export async function POST(request) {
         postSlug = `${postSlug}-${Math.floor(Math.random() * 10000)}`;
     }
     
-    // Structure permissions object
     const permissions = {
         is_slide_article: data.permissions?.is_slide_article || false,
         is_premium: data.permissions?.is_premium || false,
@@ -115,6 +116,8 @@ export async function POST(request) {
       views: 0,
       tags: Array.isArray(data.tags) ? data.tags : (data.tags || "").split(",").map(t => t.trim()).filter(Boolean),
       permissions: permissions,
+      category_ids: data.category_ids || [],
+      subcategory_ids: data.subcategory_ids || [],
     });
 
     await newPost.save();
@@ -160,6 +163,7 @@ export async function PUT(request) {
         ...updateData,
         tags: Array.isArray(updateData.tags) ? updateData.tags : (updateData.tags || []),
         subcategory_ids: updateData.subcategory_ids || [],
+        category_ids: updateData.category_ids || [],
     };
     
     if (title) update.title = title;
@@ -183,6 +187,8 @@ export async function PUT(request) {
         { new: true, runValidators: true } 
     )
     .populate('author_id') 
+    // ADDED: Populate here so the response confirms the save worked
+    .populate('category_ids') 
     .populate('subcategory_ids');
 
     if (!updatedPost) {
@@ -214,7 +220,7 @@ export async function DELETE(request) {
             const body = await request.json();
             idToDelete = body._id || body.id;
         } catch (e) {
-            // body might be empty if relying on query params
+            console.error(e);
         }
     }
     

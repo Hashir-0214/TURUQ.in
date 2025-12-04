@@ -1,3 +1,5 @@
+// src/app/category/[slug]/[subCategoryName]/CategoryArticles.jsx
+
 "use client";
 
 import { useState } from "react";
@@ -46,9 +48,6 @@ export default function CategoryArticles({ articles }) {
   );
 }
 
-/* ------------------------------------------------------------------ */
-/* ArticleCard Component (Moved here to use styles in Client Comp)    */
-/* ------------------------------------------------------------------ */
 function ArticleCard({ article: a }) {
   return (
     <article className={styles.articleCard}>
@@ -64,8 +63,8 @@ function ArticleCard({ article: a }) {
 
       <div className={styles.cardContent}>
         <div className={styles.tags}>
-          {a.categories.map((c) => (
-            <Tag key={c.name} link={c.link}>
+          {a.categories.map((c, idx) => (
+            <Tag key={`${c.name}-${idx}`} link={c.link}>
               {c.name}
             </Tag>
           ))}

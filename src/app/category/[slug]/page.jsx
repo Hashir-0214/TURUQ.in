@@ -4,27 +4,24 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { getCategoryData } from "@/lib/category";
-import Footer from "@/components/footer/footer";
 import { dbConnect } from "@/lib/mongodb";
 import Category from "@/models/Category";
 import Tag from "@/components/ui/tag";
 import styles from "./category.module.css";
 
-/* ------------------------------------------------------------------ */
-/* STATIC PARAMS                                                      */
-/* ------------------------------------------------------------------ */
 export async function generateStaticParams() {
   await dbConnect();
   const categories = await Category.find({}).select("slug").lean();
   return categories.map((c) => ({ slug: c.slug }));
 }
 
-/* ------------------------------------------------------------------ */
-/* METADATA                                                           */
-/* ------------------------------------------------------------------ */
 export async function generateMetadata({ params }) {
-  const { slug } = await params;
-  const { mainCategory } = await getCategoryData(slug);
+  const resolvedParams = await params;
+  const { slug } = resolvedParams;
+  
+  await dbConnect();
+  const mainCategory = await Category.findOne({ slug }).select('name').lean();
+  
   if (!mainCategory) return { title: "Category Not Found" };
   return {
     title: `${mainCategory.name} - TURUQ`,
@@ -32,13 +29,10 @@ export async function generateMetadata({ params }) {
   };
 }
 
-/* ------------------------------------------------------------------ */
-/* PAGE COMPONENT                                                     */
-/* ------------------------------------------------------------------ */
 export default async function DynamicCategoryPage({ params }) {
-  const { slug } = await params;
+  const resolvedParams = await params;
+  const { slug } = resolvedParams;
 
-  // Fetch data directly
   const { articles, subCats, mainCategory } = await getCategoryData(slug);
 
   if (!mainCategory) {
@@ -53,7 +47,6 @@ export default async function DynamicCategoryPage({ params }) {
   ];
 
   return (
-    // Use the styles.container class to apply CSS variables
     <div className="mt-10">
       <div className={styles.container}>
         {/* CATEGORY HEADER */}
@@ -72,7 +65,7 @@ export default async function DynamicCategoryPage({ params }) {
                     ? `/category/${slug}`
                     : `/category/${slug}/${l.slug}`
                 }
-                className={l.slug === slug ? "!bg-[#e7000b] !text-white" : ""}
+                className={l.slug === slug ? "bg-[#e7000b]! text-white!" : ""}
               >
                 {l.label}
               </Tag>
@@ -80,10 +73,10 @@ export default async function DynamicCategoryPage({ params }) {
           </nav>
         )}
 
-        {/* ARTICLES GRID - CSS handles the layout logic via nth-child */}
+        {/* ARTICLES GRID */}
         {articles.length > 0 ? (
           <div className={styles.articlesContainer}>
-            {articles.map((a, idx) => (
+            {articles.map((a) => (
               <ArticleCard key={a.id} article={a} />
             ))}
           </div>
@@ -97,8 +90,8 @@ export default async function DynamicCategoryPage({ params }) {
           </div>
         )}
 
-        {/* SEE MORE BUTTON */}
-        {articles.length > 0 && (
+        {/* SEE MORE BUTTON - Placeholder logic */}
+        {articles.length > 20 && (
           <div className={styles.seeMoreSection}>
             <button className={styles.seeMoreBtn}>SEE MORE</button>
           </div>
@@ -108,13 +101,10 @@ export default async function DynamicCategoryPage({ params }) {
   );
 }
 
-/* ------------------------------------------------------------------ */
-/* ArticleCard Component                                              */
-/* ------------------------------------------------------------------ */
 function ArticleCard({ article: a }) {
   return (
     <article className={styles.articleCard}>
-      {/* Image Container - CSS controls visibility and size */}
+      {/* Image Container */}
       <div className={styles.articleImage}>
         <Image
           src={a.imageSrc}
@@ -122,14 +112,15 @@ function ArticleCard({ article: a }) {
           fill
           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
           style={{ objectFit: "cover" }}
+          priority={false}
         />
       </div>
 
       <div className={styles.cardContent}>
         {/* Tags */}
         <div className={styles.tags}>
-          {a.categories.map((c) => (
-            <Tag key={c.name} link={c.link}>
+          {a.categories.map((c, idx) => (
+            <Tag key={`${c.name}-${idx}`} link={c.link}>
               {c.name}
             </Tag>
           ))}
@@ -141,7 +132,6 @@ function ArticleCard({ article: a }) {
             {a.title}
           </Link>
 
-          {/* Description - CSS controls visibility (block vs none) */}
           <p className={styles.articleDescription}>{a.description}</p>
         </div>
 

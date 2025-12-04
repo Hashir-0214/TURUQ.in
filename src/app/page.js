@@ -24,8 +24,8 @@ export default async function Home() {
   }
 
   return (
-    <main className="mt-[20px] bg-[#ffedd9] w-full">
-      {/* Hero Section - Pass the dynamic data */}
+    <main className="mt-5 bg-[#ffedd9] w-full">
+      {/* Hero Section */}
       <div>
         <HeroSection articles={heroArticles} />
       </div>

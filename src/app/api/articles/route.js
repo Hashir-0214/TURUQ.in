@@ -4,7 +4,7 @@ import dbConnect from "@/mongodb";
 import Post from "@/models/Post";
 import Category from "@/models/Category";
 import SubCategory from "@/models/SubCategory";
-import Author from "@/models/Author"; // <--- ADD THIS IMPORT
+import Author from "@/models/Author"; 
 
 export async function GET(request) {
   await dbConnect();
@@ -38,14 +38,18 @@ export async function GET(request) {
       const childSubCategories = await SubCategory.find({ parent_id: mainCat._id });
       const childIds = childSubCategories.map(sub => sub._id);
 
-      query.subcategory_ids = { $in: childIds };
+      query.$or = [
+        { category_ids: mainCat._id },
+        { subcategory_ids: { $in: childIds } }
+      ];
     }
 
     const posts = await Post.find(query)
       .populate("author_id", "name") 
       .populate("subcategory_ids", "name slug") 
+      .populate("category_ids", "name slug") 
       .sort({ created_at: -1 }) 
-      .limit(10); 
+      .limit(20);
 
     return NextResponse.json(posts);
 

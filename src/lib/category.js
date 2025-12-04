@@ -5,7 +5,7 @@ import Category from "@/models/Category";
 import SubCategory from "@/models/SubCategory";
 import Author from "@/models/Author"; 
 
-const ARTICLE_CARD_PROJECTION = 'title slug excerpt content featured_image created_at author_id subcategory_ids';
+const ARTICLE_CARD_PROJECTION = 'title slug excerpt content featured_image created_at author_id subcategory_ids category_ids';
 
 function formatDate(d) {
   const day = String(d.getDate()).padStart(2, "0");
@@ -23,22 +23,43 @@ function mapArticle(art) {
     ? art.excerpt 
     : (art.content ? art.content.replace(/<[^>]*>/g, "").slice(0, 150) + "…" : "No description available.");
 
+  let displayTags = [];
+  
+  const subIds = art.subcategory_ids || [];
+  const catIds = art.category_ids || [];
+
+  if (subIds.length > 0) {
+    displayTags = subIds
+      .filter(s => s && s.name)
+      .slice(0, 2)
+      .map(s => ({
+        name: s.name,
+        link: `/category/${s.parent_id?.slug || 'general'}/${s.slug}`, 
+      }));
+  } else if (catIds.length > 0) {
+    displayTags = catIds
+      .filter(c => c && c.name)
+      .slice(0, 1)
+      .map(c => ({
+        name: c.name,
+        link: `/category/${c.slug}`
+      }));
+  } else {
+    displayTags = [{ name: "GENERAL", link: "/category/general" }];
+  }
+
   return {
     id: art._id.toString(),
     title: art.title || "Untitled",
     slug: art.slug,
     description: description,
     imageSrc: art.featured_image || "https://placehold.co/1200x675/ccc/333?text=Image+Missing",
-    categories: art.subcategory_ids?.filter(s => s && s.name).slice(0, 2).map((s) => ({
-      name: s.name,
-      link: `/category/${s.parent_id?.slug || 'general'}/${s.slug}`,
-    })) || [{ name: "GENERAL", link: "/category/general" }],
+    categories: displayTags,
     author: art.author_id?.name || "Anonymous Writer",
     date: formatDate(dateString),
   };
 }
 
-// --- EXISTING MAIN CATEGORY FUNCTION ---
 export async function getCategoryData(slug) {
   await dbConnect();
   
@@ -48,10 +69,19 @@ export async function getCategoryData(slug) {
   const subCats = await SubCategory.find({ parent_id: mainCategory._id }).lean();
   const subIds = subCats.map((s) => s._id);
 
+  const query = {
+    status: "published",
+    $or: [
+        { category_ids: mainCategory._id },
+        { subcategory_ids: { $in: subIds } }
+    ]
+  };
+
   const articles = await Post
-    .find({ status: "published", subcategory_ids: { $in: subIds } })
+    .find(query)
     .select(ARTICLE_CARD_PROJECTION)
     .populate("author_id")
+    .populate("category_ids")
     .populate({
       path: 'subcategory_ids',
       populate: { path: 'parent_id', model: 'Category', select: 'slug' }
@@ -66,15 +96,12 @@ export async function getCategoryData(slug) {
   };
 }
 
-// --- NEW SUB-CATEGORY FUNCTION ---
 export async function getSubCategoryData(parentSlug, subSlug) {
   await dbConnect();
 
-  // 1. Verify Parent exists
   const mainCategory = await Category.findOne({ slug: parentSlug }).lean();
   if (!mainCategory) return { articles: [], activeSubCategory: null, mainCategory: null, subCats: [] };
 
-  // 2. Verify Subcategory exists AND belongs to this parent
   const activeSubCategory = await SubCategory.findOne({ 
     slug: subSlug, 
     parent_id: mainCategory._id 
@@ -82,14 +109,13 @@ export async function getSubCategoryData(parentSlug, subSlug) {
 
   if (!activeSubCategory) return { articles: [], activeSubCategory: null, mainCategory, subCats: [] };
 
-  // 3. Get Siblings (for the menu)
   const subCats = await SubCategory.find({ parent_id: mainCategory._id }).lean();
 
-  // 4. Fetch Articles for THIS subcategory only
   const articles = await Post
     .find({ status: "published", subcategory_ids: activeSubCategory._id })
     .select(ARTICLE_CARD_PROJECTION)
     .populate("author_id")
+    .populate("category_ids")
     .populate({
       path: 'subcategory_ids',
       populate: { path: 'parent_id', model: 'Category', select: 'slug' }

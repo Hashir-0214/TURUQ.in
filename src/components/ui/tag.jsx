@@ -6,7 +6,7 @@ const Tag = ({ link, children, className, linkClassName }) => {
   
   return (
     <span className={`tag flex cursor-pointer select-none rounded-md border px-1.5 py-0.5 border-black font-medium leading-relaxed tracking-normal text-black transition-colors hover:bg-red-600 hover:text-white ${className}`}>
-      <Link className={`text-[9px] font-poppins ${linkClassName}`} href={href}>
+      <Link className={`${linkClassName} text-[9px] font-poppins`} href={href}>
         {children}
       </Link>
     </span>

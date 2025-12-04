@@ -23,24 +23,22 @@ export default function FeaturedArticles({ articles }) {
           data-aos="fade-up"
           data-aos-delay={(index + 1) * 100}
         >
-          {/* Image - Use article.imageSrc directly */}
-          <div className="article-image mb-4 h-[250px] w-full overflow-hidden rounded-xl">
+          {/* Image */}
+          <div className="article-image mb-4 h-[150px] md:h-[250px] w-full overflow-hidden rounded-xl">
               <Image
                   src={article.imageSrc}
-                  alt={article.titleMalayalam}
+                  alt={article.title}
                   width={400}
                   height={250}
                   sizes="(max-width: 768px) 100vw, 25vw"
                   className="h-full w-full object-cover transition-transform hover:scale-105"
-                  style={{ width: '100%', height: '250px', objectFit: 'cover' }}
                   onError={(e) => { e.currentTarget.src = 'https://placehold.co/400x250/ccc/333?text=Image+Missing'; }}
               />
           </div>
 
-          <div className="flex h-[130px] flex-col justify-between">
+          <div className="flex h-auto md:h-[130px] flex-col justify-between gap-2 md:gap-0">
             <div className="article-content flex h-auto flex-col">
               <div className="flex gap-2">
-                {/* Use article.categories directly */}
                 {article.categories.map((cat, catIndex) => (
                   <Tag key={catIndex} link={cat.link}>
                     {cat.name}
@@ -48,12 +46,14 @@ export default function FeaturedArticles({ articles }) {
                 ))}
               </div>
             </div>
-            {/* Title - Use article.slug directly */}
+            
+            {/* Title */}
             <a href={`/${article.slug}`}>
-              <h3 className="article-title local-font-rachana text-[25px] h-[70px] overflow-hidden font-bold leading-[22px] py-1 text-[#a82a2a] hover:text-red-700 transition-colors">
-                {article.titleMalayalam} {/* DYNAMIC */}
+              <h3 className="article-title local-font-rachana text-[25px] md:h-[70px] overflow-hidden font-bold leading-[22px] py-1 text-[#a82a2a] hover:text-red-700 transition-colors">
+                {article.title}
               </h3>
             </a>
+            
             <div className="article-meta flex items-center gap-2">
               <span className="author text-xs font-normal text-black">
                 {article.author}

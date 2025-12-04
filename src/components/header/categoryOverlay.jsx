@@ -1,13 +1,13 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import Link from "next/link";
-import Image from "next/image"; // Ensure Image is imported
-import { ArrowRight, Loader2 } from "lucide-react";
+import Image from "next/image";
+import { ArrowRight, Loader2, Layers } from "lucide-react";
 import Tag from "../ui/tag";
 import "@/app/search-articlecard.css";
 
-// Utility to strip HTML tags for preview text
+// --- UTILS ---
 const stripHtml = (html) => {
   if (!html) return "";
   if (typeof window !== "undefined") {
@@ -19,20 +19,29 @@ const stripHtml = (html) => {
 };
 
 export default function CategoryOverlay({ isOpen, onClose }) {
+  // --- STATE ---
   const [categories, setCategories] = useState([]);
   const [subCategories, setSubCategories] = useState([]);
+  
+  // Cache stores articles by PARENT CATEGORY SLUG
   const [articlesCache, setArticlesCache] = useState({});
+  
   const [activeCategorySlug, setActiveCategorySlug] = useState(null);
   const [activeSubCategorySlug, setActiveSubCategorySlug] = useState(null);
-  const [loading, setLoading] = useState(false);
+  
+  const [metaLoading, setMetaLoading] = useState(false);
   const [articlesLoading, setArticlesLoading] = useState(false);
 
+  // Debounce ref
+  const hoverTimeoutRef = useRef(null);
+
+  // --- 1. INITIAL METADATA LOAD ---
   useEffect(() => {
     if (isOpen) {
       const fetchMetaData = async () => {
         if (categories.length > 0) return;
 
-        setLoading(true);
+        setMetaLoading(true);
         try {
           const [catRes, subCatRes] = await Promise.all([
             fetch("/api/categories"),
@@ -55,7 +64,7 @@ export default function CategoryOverlay({ isOpen, onClose }) {
         } catch (error) {
           console.error("Error fetching metadata:", error);
         } finally {
-          setLoading(false);
+          setMetaLoading(false);
         }
       };
 
@@ -63,78 +72,37 @@ export default function CategoryOverlay({ isOpen, onClose }) {
     }
   }, [isOpen]);
 
-  const activeCategory = categories.find((c) => c.slug === activeCategorySlug);
+  // --- HELPERS ---
 
-  const currentSubCategories = activeCategory
-    ? subCategories.filter((sub) => sub.parent_id === activeCategory._id)
-    : [];
+  const activeCategory = useMemo(() => 
+    categories.find((c) => c.slug === activeCategorySlug),
+  [categories, activeCategorySlug]);
 
-  const getCacheKey = () => {
-    return activeSubCategorySlug
-      ? `sub:${activeSubCategorySlug}`
-      : `cat:${activeCategorySlug}`;
-  };
+  const currentSubCategories = useMemo(() => 
+    activeCategory
+      ? subCategories.filter((sub) => sub.parent_id === activeCategory._id)
+      : [],
+  [activeCategory, subCategories]);
 
+  // --- 2. ARTICLE FETCHING STRATEGY ---
   useEffect(() => {
-    const fetchArticles = async () => {
+    const fetchCategoryFamily = async () => {
       if (!activeCategorySlug) return;
 
-      const cacheKey = getCacheKey();
-
-      if (articlesCache[cacheKey]) {
+      if (articlesCache[activeCategorySlug]) {
         setArticlesLoading(false);
         return;
       }
 
       setArticlesLoading(true);
       try {
-        let url = `/api/articles?`;
-
-        if (activeSubCategorySlug) {
-          url += `subcategory=${activeSubCategorySlug}`;
-        } else {
-          url += `category=${activeCategorySlug}`;
-        }
-
-        const res = await fetch(url);
+        const res = await fetch(`/api/articles?category=${activeCategorySlug}`);
 
         if (res.ok) {
           const rawData = await res.json();
-
-          const mappedData = rawData.map((post) => {
-            const previewText = post.excerpt
-              ? post.excerpt
-              : stripHtml(post.content).substring(0, 150) + "...";
-
-            // Prepare subcategory object with Name AND Link
-            const subObj = post.subcategory_ids?.[0];
-            const subcategoryData = subObj
-              ? {
-                  name: subObj.name,
-                  link: `/category/${activeCategory?.slug}/${subObj.slug}`,
-                }
-              : null;
-
-            return {
-              _id: post._id,
-              title: post.title,
-              content: previewText,
-              image: post.featured_image || "https://placehold.co/600x400",
-              link: `/${post.slug}`,
-              category: activeCategory?.name,
-              subcategory: subcategoryData,
-              author: post.author_id?.name || "Author",
-              date: new Date(post.created_at).toLocaleDateString("en-GB", {
-                day: "numeric",
-                month: "short",
-                year: "numeric",
-              }),
-            };
-          });
-
           setArticlesCache((prev) => ({
             ...prev,
-            [cacheKey]: mappedData,
+            [activeCategorySlug]: rawData,
           }));
         }
       } catch (error) {
@@ -145,9 +113,117 @@ export default function CategoryOverlay({ isOpen, onClose }) {
     };
 
     if (isOpen && activeCategorySlug) {
-      fetchArticles();
+      fetchCategoryFamily();
     }
-  }, [activeCategorySlug, activeSubCategorySlug, isOpen]);
+  }, [activeCategorySlug, isOpen, articlesCache]);
+
+  // --- 3. FILTERING & CLASSIFICATION LOGIC (THE FIX) ---
+  const getDisplayedArticles = useMemo(() => {
+    const familyArticles = articlesCache[activeCategorySlug] || [];
+
+    // Filter Step: Only if a subcategory is actively hovered
+    const filteredRaw = activeSubCategorySlug
+      ? familyArticles.filter(post => {
+          const subs = post.subcategory_ids || [];
+          // Robust Check: Handle both populated objects ({slug: '...'}) and unpopulated IDs ('690...')
+          return subs.some(s => {
+             if (typeof s === 'string') {
+                // It's an ID, find it in our metadata to get the slug
+                const found = subCategories.find(sc => sc._id === s);
+                return found?.slug === activeSubCategorySlug;
+             }
+             // It's an object
+             return s.slug === activeSubCategorySlug;
+          });
+        })
+      : familyArticles;
+
+    // Mapping Step
+    return filteredRaw.map((post) => {
+      const previewText = post.excerpt
+        ? post.excerpt
+        : stripHtml(post.content).substring(0, 150) + "...";
+
+      let displayTag = null;
+      let displayLink = null;
+
+      const subArray = post.subcategory_ids || [];
+      const catArray = post.category_ids || [];
+
+      // STRATEGY IMPLEMENTATION
+      if (subArray.length > 0) {
+        // Case A: Has Subcategories -> Show Subcategory Tag
+        let targetSub = null;
+
+        // Try to find the specific sub object (Active or First)
+        // Handle mixed ID/Object data
+        if (activeSubCategorySlug) {
+            targetSub = subArray.find(s => {
+                const sSlug = typeof s === 'string' 
+                    ? subCategories.find(sc => sc._id === s)?.slug 
+                    : s.slug;
+                return sSlug === activeSubCategorySlug;
+            });
+        }
+        
+        if (!targetSub) targetSub = subArray[0];
+
+        // Resolve Name/Slug if it's just an ID
+        if (typeof targetSub === 'string') {
+            const found = subCategories.find(sc => sc._id === targetSub);
+            if (found) {
+                displayTag = found.name;
+                displayLink = `/category/${activeCategorySlug}/${found.slug}`;
+            }
+        } else if (targetSub) {
+            displayTag = targetSub.name;
+            displayLink = `/category/${activeCategorySlug}/${targetSub.slug}`;
+        }
+
+      } 
+      
+      // Case B: No Subcategories, but has Category -> Show Category Tag
+      if (!displayTag && catArray.length > 0) {
+         const targetCat = catArray[0];
+         // Resolve Name/Slug if it's just an ID
+         if (typeof targetCat === 'string') {
+             const found = categories.find(c => c._id === targetCat);
+             if (found) {
+                 displayTag = found.name;
+                 displayLink = `/category/${found.slug}`;
+             }
+         } else if (targetCat) {
+             displayTag = targetCat.name;
+             displayLink = `/category/${targetCat.slug}`;
+         }
+      }
+
+      // Case C: Fallback to Current Overlay Category
+      if (!displayTag) {
+        displayTag = activeCategory?.name;
+        displayLink = `/category/${activeCategorySlug}`;
+      }
+
+      return {
+        _id: post._id,
+        title: post.title,
+        content: previewText,
+        image: post.featured_image || "https://placehold.co/600x400",
+        link: `/${post.slug}`,
+        displayTag,
+        displayLink,
+        author: post.author_id?.name || "Author",
+        date: new Date(post.created_at).toLocaleDateString("en-GB", {
+          day: "numeric",
+          month: "short",
+          year: "numeric",
+        }),
+      };
+    });
+  }, [articlesCache, activeCategorySlug, activeSubCategorySlug, activeCategory, subCategories, categories]);
+
+
+  // --- HANDLERS ---
 
   const handleCategoryInteraction = (slug) => {
     if (slug === activeCategorySlug) return;
@@ -157,10 +233,17 @@ export default function CategoryOverlay({ isOpen, onClose }) {
 
   const handleSubCategoryHover = (slug) => {
     if (slug === activeSubCategorySlug) return;
-    setActiveSubCategorySlug(slug);
+    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+    
+    hoverTimeoutRef.current = setTimeout(() => {
+      setActiveSubCategorySlug(slug);
+    }, 150);
   };
 
-  const currentArticles = articlesCache[getCacheKey()] || [];
+  const handleResetSubCategory = () => {
+    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+    setActiveSubCategorySlug(null);
+  };
 
   if (!isOpen) return null;
 
@@ -168,8 +251,10 @@ export default function CategoryOverlay({ isOpen, onClose }) {
     <div className="menu-overlay fixed inset-0 bg-[#ffedd9] z-40 pt-[150px] overflow-y-auto transition-opacity duration-300 ease-in-out">
       <div className="max-w-6xl mx-auto h-full px-4 sm:px-6 lg:px-8">
         <div className="flex h-full min-h-[calc(100vh-150px)] flex-col lg:flex-row">
+          
+          {/* --- LEFT SIDEBAR: CATEGORIES --- */}
           <div className="w-full lg:w-1/4 pt-10 pb-4 lg:pb-10 lg:border-r border-gray-500 lg:pr-8 mb-60">
-            {loading ? (
+            {metaLoading ? (
               <div className="space-y-4 animate-pulse">
                 {[1, 2, 3, 4].map((i) => (
                   <div key={i} className="h-8 bg-gray-300 rounded w-3/4"></div>
@@ -182,7 +267,6 @@ export default function CategoryOverlay({ isOpen, onClose }) {
                     key={cat.slug}
                     onMouseEnter={() => handleCategoryInteraction(cat.slug)}
                     onClick={() => handleCategoryInteraction(cat.slug)}
-                    onFocus={() => handleCategoryInteraction(cat.slug)}
                     className={`text-left flex font-oswald uppercase text-xl lg:text-4xl transition-colors focus:outline-none ${
                       cat.slug === activeCategorySlug
                         ? "text-red-600 font-bold"
@@ -197,30 +281,42 @@ export default function CategoryOverlay({ isOpen, onClose }) {
             <div className="w-full h-px bg-gray-300 mt-6 lg:hidden"></div>
           </div>
 
-          {/* --- RIGHT AREA --- */}
+          {/* --- RIGHT AREA: SUBCATEGORIES & ARTICLES --- */}
           <div className="w-full lg:w-3/4 overflow-y-auto pt-8 lg:pl-8">
-            {/* Subcategories Header Area */}
+            
+            {/* 1. Subcategories List */}
             <div className="flex flex-wrap items-center justify-between mb-2 min-h-[50px]">
               <div className="flex flex-wrap gap-2 items-center">
+                
+                {currentSubCategories.length > 0 && (
+                     <div
+                        onMouseEnter={handleResetSubCategory}
+                        onClick={handleResetSubCategory}
+                        className="inline-block cursor-pointer"
+                     >
+                        <Tag 
+                            className={!activeSubCategorySlug ? "bg-black text-white" : "bg-transparent border border-black hover:bg-gray-200"}
+                        >
+                            ALL
+                        </Tag>
+                     </div>
+                )}
+
                 {currentSubCategories.length > 0 ? (
                   currentSubCategories.map((sub) => (
                     <div
                       key={sub.slug}
-                      onClick={onClose}
                       onMouseEnter={() => handleSubCategoryHover(sub.slug)}
-                      onFocus={() => handleSubCategoryHover(sub.slug)}
-                      className="inline-block"
+                      onClick={() => handleSubCategoryHover(sub.slug)}
+                      className="inline-block cursor-pointer"
                     >
                       <Tag
-                        link={
-                          activeCategory
-                            ? `/category/${activeCategory.slug}/${sub.slug}`
-                            : "#"
-                        }
+                        link="#"
+                        preventDefault={true} 
                         className={
                           activeSubCategorySlug === sub.slug
-                            ? "bg-red-600 text-white"
-                            : ""
+                            ? "bg-red-600 text-white border-red-600"
+                            : "hover:border-red-600"
                         }
                       >
                         {sub.name}
@@ -246,98 +342,87 @@ export default function CategoryOverlay({ isOpen, onClose }) {
               )}
             </div>
 
-            {/* Grid */}
+            {/* 2. Articles Grid */}
             {articlesLoading ? (
-              <div className="flex items-center justify-center h-40">
-                <p className="text-gray-500 animate-pulse">
-                  <Loader2 className="w-8 h-8 inline-block" />
-                </p>
+              <div className="flex flex-col items-center justify-center h-60">
+                <Loader2 className="w-10 h-10 text-red-600 animate-spin mb-4" />
+                <p className="text-gray-500 font-oswald uppercase tracking-widest">Loading Highlights...</p>
               </div>
             ) : (
               <div className="category-article-card-container">
-                {currentArticles.length > 0 ? (
-                  currentArticles.map((article, index) => {
-                    const subName = article.subcategory?.name?.toUpperCase();
-                    const subLink = article.subcategory?.link;
+                {getDisplayedArticles.length > 0 ? (
+                  getDisplayedArticles.map((article, index) => (
+                    <div key={article._id || index} className="h-full animate-in fade-in duration-500">
+                      
+                      <div className="category-article-card rounded-2xl flex flex-col gap-3 overflow-hidden bg-[#ffedd9] border border-gray-500 h-full p-6">
+                        
+                        <Link
+                          href={article.link || "#"}
+                          onClick={onClose}
+                          className="category-article-image-container w-full block relative"
+                        >
+                          <div className="w-full h-44 relative overflow-hidden rounded-2xl bg-gray-200">
+                            <Image
+                              src={article.image}
+                              alt={article.title || "Article Image"}
+                              fill
+                              sizes="(max-width: 768px) 100vw, 33vw"
+                              className="object-cover transition-transform duration-500 hover:scale-105"
+                              onError={(e) => { e.currentTarget.style.display = "none"; }}
+                            />
+                          </div>
+                        </Link>
 
-                    return (
-                      <div key={article._id || index} className="h-full">
-                        {/* INLINED CARD COMPONENT */}
-                        <div className="category-article-card rounded-2xl flex flex-col gap-3 overflow-hidden bg-[#ffedd9] border border-gray-500 h-full p-6">
-                          {/* Article Image */}
-                          <Link
-                            href={article.link || "#"}
-                            onClick={onClose}
-                            className="category-article-image-container w-full block relative w-full"
-                          >
-                            <div className="w-full h-44 relative overflow-hidden rounded-2xl">
-                              <Image
-                                src={article.image}
-                                alt={article.title || "Article Image"}
-                                fill
-                                sizes="(max-width: 768px) 100vw, 50vw"
-                                className="object-cover transition-transform duration-500 hover:scale-105"
-                                onError={(e) => {
-                                  e.currentTarget.src =
-                                    "https://placehold.co/600x400/ccc/333?text=Image+Missing";
-                                }}
-                              />
-                            </div>
-                          </Link>
-
-                          {/* Content */}
-                          <div className="category-article-content-container max-h-[240px] h-auto min-h-[120px] w-full flex flex-col justify-between">
-                            <div className="flex items-center">
-                              {subName && (
-                                <Tag
-                                  link={subLink}
-                                  className="z-50"
-                                  onClick={onClose}
-                                >
-                                  {subName}
-                                </Tag>
-                              )}
-                            </div>
-                            <div className="flex flex-col gap-1">
-                              <Link
-                                href={article.link || "#"}
+                        <div className="category-article-content-container max-h-60 h-auto min-h-[120px] w-full flex flex-col justify-between">
+                          <div className="flex items-center min-h-6">
+                            {article.displayTag && (
+                              <Tag
+                                link={article.displayLink}
+                                className="z-50 text-[10px] px-2 py-0.5"
                                 onClick={onClose}
                               >
-                                <h3 className="local-font-rachana font-bold text-[24px] sm:text-[30px] cursor-pointer leading-[32px] text-red-600 hover:text-red-700 transition-colors line-clamp-2">
-                                  {article.title}
-                                </h3>
-                              </Link>
-
-                              {/* Content Preview */}
-                              <div className="category-article-content hidden local-font-rachana text-gray-700 line-clamp-2 text-base sm:text-[18px] leading-[20px]">
-                                {article.content}
-                              </div>
+                                {article.displayTag.toUpperCase()}
+                              </Tag>
+                            )}
+                          </div>
+                          
+                          <div className="flex flex-col gap-1">
+                            <Link href={article.link || "#"} onClick={onClose}>
+                              <h3 className="local-font-rachana font-bold text-[24px] sm:text-[30px] cursor-pointer leading-8 text-red-600 hover:text-red-700 transition-colors line-clamp-2">
+                                {article.title}
+                              </h3>
+                            </Link>
+                            <div className="category-article-content hidden local-font-rachana text-gray-700 line-clamp-2 text-base sm:text-[18px] leading-5">
+                              {article.content}
                             </div>
+                          </div>
 
-                            <div className="text-sm border-t border-gray-100 flex items-center gap-2">
-                              <span className="font-poppins font-semibold text-xs text-black">
-                                {article.author}
-                              </span>
-                              <span className="text-gray-400 font-semibold text-sm">
-                                |
-                              </span>
-                              <span className="text-xs font-semibold text-gray-500">
-                                {article.date}
-                              </span>
-                            </div>
+                          <div className="text-sm border-t border-gray-400/30 pt-2 mt-2 flex items-center gap-2">
+                            <span className="font-poppins font-semibold text-xs text-black">
+                              {article.author}
+                            </span>
+                            <span className="text-gray-400 font-semibold text-sm">|</span>
+                            <span className="text-xs font-semibold text-gray-500">
+                              {article.date}
+                            </span>
                           </div>
                         </div>
                       </div>
-                    );
-                  })
+                    </div>
+                  ))
                 ) : (
-                  <p className="text-gray-500 local-font-rachana text-lg mt-4 col-span-full">
-                    No highlights available for{" "}
-                    {activeSubCategorySlug
-                      ? "this subcategory"
-                      : activeCategory?.name}
-                    .
-                  </p>
+                  <div className="col-span-full flex flex-col items-center justify-center py-20 text-center">
+                    <Layers className="w-12 h-12 text-gray-300 mb-4" />
+                    <p className="text-gray-500 local-font-rachana text-xl">
+                      No highlights available for{" "}
+                      <span className="text-red-600 font-bold">
+                        {activeSubCategorySlug
+                          ? currentSubCategories.find(s => s.slug === activeSubCategorySlug)?.name
+                          : activeCategory?.name}
+                      </span>
+                      .
+                    </p>
+                  </div>
                 )}
               </div>
             )}
