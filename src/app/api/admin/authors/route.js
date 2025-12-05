@@ -2,12 +2,10 @@
 
 import Author from '@/models/Author';
 import { NextResponse } from 'next/server';
-import dbConnect from '@/mongodb';
+import {dbConnect} from '@/mongodb';
 
-// FIX: Allow either variable to be used as the server key
 const SECURE_API_KEY = process.env.NEXT_PUBLIC_API_KEY || process.env.API_KEY;
 
-// Centralized authentication function
 const checkAuth = (req) => {
     const apikey = req.headers.get("x-api-key");
     
