@@ -7,16 +7,15 @@ import {dbConnect} from '@/mongodb';
 const SECURE_API_KEY = process.env.NEXT_PUBLIC_API_KEY || process.env.API_KEY;
 
 const checkAuth = (req) => {
-    const apikey = req.headers.get("x-api-key");
-    
-    // FIX: Detailed logging to help you debug in Vercel Logs if it fails again
     if (!SECURE_API_KEY) {
-        console.error("CRITICAL ERROR: No API Key found in Server Environment Variables.");
+        console.error("Vercel Error: NEXT_PUBLIC_API_KEY or API_KEY is missing in Environment Variables.");
         return false;
     }
 
+    const apikey = req.headers.get("x-api-key");
+    
     if (apikey !== SECURE_API_KEY) {
-        console.error("Auth Failed. Received:", apikey ? "***" : "null", "Expected:", "***");
+        console.log("Auth Failed. Header Key:", apikey ? "Received" : "Missing");
         return false;
     }
     return true;
