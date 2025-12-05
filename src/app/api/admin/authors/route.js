@@ -2,7 +2,7 @@
 
 import Author from '@/models/Author';
 import { NextResponse } from 'next/server';
-import {dbConnect} from '@/mongodb';
+import dbConnect from '@/mongodb';
 
 const SECURE_API_KEY = process.env.NEXT_PUBLIC_API_KEY || process.env.API_KEY;
 
