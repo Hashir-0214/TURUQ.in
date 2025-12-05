@@ -53,8 +53,7 @@ export default function RootLayout({ children }) {
         </div>
 
         {!isAdmin && !loginPage && !registerPage && <Footer />}
-        <SpeedInsights />
-        <Analytics />
+
       </body>
     </html>
   );
