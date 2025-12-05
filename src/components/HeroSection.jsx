@@ -150,7 +150,7 @@ export default function HeroSection({ articles }) {
               </div>
 
               {/* Navigation Buttons */}
-              <div className="hidden md:flex items-center gap-3">
+              <div className="flex items-center gap-3">
                 <button
                   onClick={handlePrev}
                   className="nav-btn flex h-7 w-10 items-center justify-center rounded border border-black/30 bg-red-600 transition-colors hover:bg-red-700 cursor-pointer"
