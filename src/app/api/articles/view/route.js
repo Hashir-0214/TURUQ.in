@@ -1,6 +1,6 @@
 // src/app/api/articles/view/route.js
 import { NextResponse } from "next/server";
-import dbConnect from "@/lib/mongodb";
+import dbConnect from "@/mongodb";
 import Post from "@/models/Post";
 
 import "@/models/Category";
