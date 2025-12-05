@@ -5,8 +5,7 @@ import Header from "@/components/header/header";
 import "./globals.css";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
-import { SpeedInsights } from "@vercel/speed-insights/next";
-import { Analytics } from "@vercel/analytics/next";
+
 
 export default function RootLayout({ children }) {
   const [loading, setLoading] = useState(false);
