@@ -26,14 +26,14 @@ export default function Footer() {
           </div>
         </div>
       </div>
-      <div className="text-center py-5 w-[83%] max-w-[1250px] mx-auto">
+      {/* <div className="text-center py-5 w-[83%] max-w-[1250px] mx-auto">
         <div className="flex flex-col gap-2">
           <span className="font-poppins text-[15px] font-normal text-[#717171]">© 2025 TURUQ</span>
           <span className="font-poppins text-[13px] font-normal text-[#888888]">
             Developed by <span className="text-[#d64545] font-medium">Your Name</span>
           </span>
         </div>
-      </div>
+      </div> */}
     </footer>
   );
 }
