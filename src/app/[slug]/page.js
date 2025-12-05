@@ -203,23 +203,13 @@ export default async function ArticlePage({ params }) {
           )}
 
           <div
-            className="article-content local-font-rachana prose prose-lg prose-red max-w-none text-gray-800 leading-loose prose-img:rounded-xl"
+            className="article-content local-font-rachana prose prose-lg prose-red max-w-none text-gray-800 prose-img:rounded-xl"
             dangerouslySetInnerHTML={{ __html: article.content }}
           />
         </article>
       </div>
 
       <div className="max-w-[1250px] mx-auto w-full h-px bg-gray-200 my-14" />
-
-      {/* COMMENTS */}
-      {article.comments_enabled && (
-        <section className="max-w-[1250px] mx-auto mb-20">
-          <h2 className="text-4xl font-oswald mb-10 text-gray-900 uppercase">
-            Comments
-          </h2>
-          <div className="text-gray-500 italic">Comments section placeholder...</div> 
-        </section>
-      )}
     </main>
   );
 }
