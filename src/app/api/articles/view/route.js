@@ -1,7 +1,10 @@
 // src/app/api/articles/view/route.js
 import { NextResponse } from "next/server";
-import dbConnect from "@/lib/mongodb"; // Adjust path if your dbConnect is in @/mongodb
+import dbConnect from "@/lib/mongodb";
 import Post from "@/models/Post";
+
+import "@/models/Category";
+import "@/models/SubCategory";
 
 export async function POST(request) {
   try {
@@ -12,7 +15,6 @@ export async function POST(request) {
       return NextResponse.json({ message: "Slug is required" }, { status: 400 });
     }
 
-    // $inc is atomic and efficient
     await Post.findOneAndUpdate(
       { slug },
       { $inc: { views: 1 } }
