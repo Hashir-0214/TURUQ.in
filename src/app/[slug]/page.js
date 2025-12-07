@@ -3,7 +3,6 @@
 import Tag from "@/components/ui/tag";
 import { getArticle } from "@/lib/mongodb";
 import { notFound } from "next/navigation";
-import Image from "next/image";
 import Link from "next/link";
 import ViewCounter from "@/components/article/ViewCounter";
 import ShareButton from "@/components/article/ShareButton";
@@ -67,7 +66,7 @@ export async function generateMetadata({ params }) {
     title: `${article.title} — TURUQ`,
     description: article.excerpt || article.title,
     openGraph: {
-      images: [article.featured_image || "https://placeholder.com/1200x630"],
+      images: [article.featured_image || "https://placehold.co/1200x630"],
       title: article.title,
       description: article.excerpt,
     },
@@ -100,38 +99,37 @@ export default async function ArticlePage({ params }) {
 
   return (
     <main className="mt-8 px-4">
+      {/* Client Component: View Counter (Invisible) */}
       <ViewCounter slug={slug} />
+
       {/* FEATURED IMAGE */}
       <section className="flex flex-col items-center max-w-[1250px] w-full mx-auto border border-black rounded-[20px] p-2 md:p-5 lg:p-8 mb-10 overflow-hidden bg-[#ffedd9] shadow-sm">
         <div className="relative w-full h-[300px] md:h-[540px] rounded-[20px] overflow-hidden bg-gray-100">
-          <Image
-            src={article.featured_image || "https://placeholder.com/1200x540"}
+          {/* FIX: Replaced <Image> with standard <img> to bypass loader errors completely */}
+          <img
+            src={article.featured_image || "https://placehold.co/1200x540"}
             alt={article.title || "Featured article image"}
-            fill
-            className="object-cover"
-            priority
-            sizes="(max-width: 768px) 100vw, 1250px"
+            className="absolute inset-0 w-full h-full object-cover"
           />
         </div>
       </section>
 
       <div className="max-w-[1250px] mx-auto flex flex-col lg:flex-row-reverse items-start justify-between gap-10 px-1">
         {/* LEFT: AUTHOR + SHARE */}
-        <aside className="flex flex-col shrink-0 items-center gap-6 w-full lg:w-[300px] lg:top-36 order-2 lg:order-2">
+        <aside className="flex flex-col shrink-0 items-center gap-6 w-full lg:w-[300px] order-2 lg:order-2">
           <div className="w-full border border-black rounded-3xl p-6 text-center bg-[#ffedd9] transition-shadow font-poppins">
             <div className="text-xs font-bold tracking-wider mb-4 text-gray-500 uppercase">
               Author
             </div>
 
             <div className="relative inline-block mb-4">
-              <Image
+              {/* FIX: Replaced <Image> with standard <img> */}
+              <img
                 src={
                   author.avatar ||
                   "https://cdn.builder.io/api/v1/image/assets/TEMP/9bb4988949e5939edbdc39fb1f4c712bf3b7921a?width=598"
                 }
                 alt={author.name || "Author"}
-                width={80}
-                height={80}
                 className="w-20 h-20 rounded-full object-cover border border-black shadow-sm bg-white"
               />
             </div>
@@ -161,6 +159,7 @@ export default async function ArticlePage({ params }) {
             )}
           </div>
 
+          {/* Client Component: Share Button */}
           <ShareButton
             title={article.title}
             text={article.excerpt || "Check out this article on TURUQ"}
@@ -185,12 +184,13 @@ export default async function ArticlePage({ params }) {
             </div>
 
             <div className="flex gap-4 text-xs md:text-sm text-gray-500 font-medium">
-              <span>{formatDate(article.published_at || article.created_at)}</span>
+              <span>
+                {formatDate(article.published_at || article.created_at)}
+              </span>
               <span>•</span>
               <span>{readTime} Min Read</span>
-              {/* Optional: Show View Count Here if you want */}
               {/* <span>•</span> */}
-              <span>{article.views} Views</span>
+              <span>{article.views || 0} Views</span>
             </div>
           </div>
 
@@ -212,6 +212,7 @@ export default async function ArticlePage({ params }) {
       </div>
 
       <div className="max-w-[1250px] mx-auto w-full h-px bg-gray-200 my-14" />
+
     </main>
   );
 }

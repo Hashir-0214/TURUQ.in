@@ -4,7 +4,7 @@ import * as jose from 'jose';
 
 const secret = new TextEncoder().encode(process.env.JWT_SECRET);
 
-export async function middleware(request) {
+export async function proxy(request) {
   const { pathname } = request.nextUrl;
   
   // 1. define paths

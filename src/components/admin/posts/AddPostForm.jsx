@@ -6,10 +6,8 @@ import { Save, Loader2 } from "lucide-react";
 import Select from "@/components/ui/select/Select";
 import RichTextEditor from "../ui/text-editor/TextEditor";
 
-// Utils
 import { slugify } from "@/utils/slugify";
 
-// Sub-Components
 import FeaturedImageSection from "./form-sections/FeaturedImageSection";
 import ClassificationSection from "./form-sections/ClassificationSection";
 import PermissionsSection from "./form-sections/PermissionsSection";
@@ -17,8 +15,9 @@ import PermissionsSection from "./form-sections/PermissionsSection";
 const API_KEY = process.env.NEXT_PUBLIC_API_KEY;
 const API_HEADERS = { "x-api-key": API_KEY };
 
+const MAX_FILE_SIZE = 4 * 1024 * 1024;
+
 export default function AddPostForm({ onPostAdded, onCancel }) {
-  // --- STATE MANAGEMENT ---
   const [values, setValues] = useState({
     title: "",
     slug: "",
@@ -41,21 +40,17 @@ export default function AddPostForm({ onPostAdded, onCancel }) {
 
   const [classificationMode, setClassificationMode] = useState("category");
 
-  // File Upload State
   const [selectedFile, setSelectedFile] = useState(null);
   const [imageUploadLoading, setImageUploadLoading] = useState(false);
   const [imageError, setImageError] = useState("");
 
-  // Data State (Raw Data)
   const [authors, setAuthors] = useState([]);
   const [categories, setCategories] = useState([]);
   const [subCategories, setSubCategories] = useState([]);
 
-  // Form Status State
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  // --- DATA LOADING ---
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -79,29 +74,24 @@ export default function AddPostForm({ onPostAdded, onCancel }) {
     loadData();
   }, []);
 
-  // --- DERIVED OPTIONS (The Update Logic) ---
-  
-  // 1. Identify Parent Category IDs (Categories that act as parents to subcategories)
   const parentCategoryIds = useMemo(() => {
     return new Set(subCategories.map((sub) => sub.parent_id));
   }, [subCategories]);
 
-  // 2. Create Option Lists
-  const allCategoryOptions = useMemo(() => 
-    categories.map((c) => ({ label: c.name, value: c._id })), 
+  const allCategoryOptions = useMemo(() =>
+    categories.map((c) => ({ label: c.name, value: c._id })),
     [categories]
   );
 
-  // 3. Filtered list: Only categories that are NOT parents (Leaf nodes)
-  const leafCategoryOptions = useMemo(() => 
+  const leafCategoryOptions = useMemo(() =>
     categories
       .filter((c) => !parentCategoryIds.has(c._id))
-      .map((c) => ({ label: c.name, value: c._id })), 
+      .map((c) => ({ label: c.name, value: c._id })),
     [categories, parentCategoryIds]
   );
 
-  const subCategoryOptions = useMemo(() => 
-    subCategories.map((s) => ({ label: s.name, value: s._id })), 
+  const subCategoryOptions = useMemo(() =>
+    subCategories.map((s) => ({ label: s.name, value: s._id })),
     [subCategories]
   );
 
@@ -110,14 +100,12 @@ export default function AddPostForm({ onPostAdded, onCancel }) {
     [authors]
   );
 
-  // --- AUTO SLUGIFY ---
   useEffect(() => {
     if (values.title && !values.slug) {
       setValues((s) => ({ ...s, slug: slugify(values.title) }));
     }
   }, [values.title, values.slug]);
 
-  // --- HANDLERS ---
   const handleChange = (e) => {
     if (typeof e === "string") {
       setValues((s) => ({ ...s, content: e }));
@@ -138,14 +126,11 @@ export default function AddPostForm({ onPostAdded, onCancel }) {
     setClassificationMode(mode);
     setValues((prev) => ({
       ...prev,
-      // If switching to subcategory only, clear categories
       category_ids: mode === "subcategory" ? [] : prev.category_ids,
-      // If switching to category only, clear subcategories
       subcategory_ids: mode === "category" ? [] : prev.subcategory_ids,
     }));
   };
 
-  // Image Handlers
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -156,6 +141,12 @@ export default function AddPostForm({ onPostAdded, onCancel }) {
   };
 
   const uploadImage = useCallback(async (file) => {
+
+    if (file.size > MAX_FILE_SIZE) {
+      setImageError("File is too large. Max size is 4MB.");
+      return null;
+    }
+
     setImageUploadLoading(true);
     setImageError("");
     try {
@@ -170,7 +161,11 @@ export default function AddPostForm({ onPostAdded, onCancel }) {
       if (!res.ok) throw new Error(json.message || "Upload failed");
       return json.imageUrl;
     } catch (err) {
-      setImageError(err.message);
+      if (err.message && err.message.includes("413")) {
+        setImageError("File too large for server limits.");
+      } else {
+        setImageError(err.message);
+      }
       return null;
     } finally {
       setImageUploadLoading(false);
@@ -195,7 +190,6 @@ export default function AddPostForm({ onPostAdded, onCancel }) {
     }
   }, []);
 
-  // Select Handlers
   const handleSingleSelectChange = (name, newValue) => {
     setValues((s) => ({ ...s, [name]: newValue ? newValue.value : "" }));
   };
@@ -204,14 +198,12 @@ export default function AddPostForm({ onPostAdded, onCancel }) {
     setValues((s) => ({ ...s, [name]: newValue.map((item) => item.value) }));
   };
 
-  // --- SUBMIT ---
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     setError("");
     setImageError("");
 
-    // Validation
     if (!values.title || !values.slug || !values.content || !values.author_id) {
       setError("Title, slug, Content, and Author are required.");
       setLoading(false);
@@ -250,7 +242,6 @@ export default function AddPostForm({ onPostAdded, onCancel }) {
       return;
     }
 
-    // Image Upload
     let finalImageUrl = values.featured_image;
     if (selectedFile) {
       const url = await uploadImage(selectedFile);
@@ -291,10 +282,9 @@ export default function AddPostForm({ onPostAdded, onCancel }) {
     }
   };
 
-  // --- RENDER HELPERS ---
   const currentAuthorValue =
     authorOptions.find((opt) => opt.value === values.author_id) || null;
-  
+
   const statusOptions = [
     { label: "Draft", value: "draft" },
     { label: "Published", value: "published" },
@@ -304,7 +294,7 @@ export default function AddPostForm({ onPostAdded, onCancel }) {
     statusOptions.find((opt) => opt.value === values.status) || null;
 
   // Determine which Category Options to pass based on mode
-  const activeCategoryOptions = 
+  const activeCategoryOptions =
     classificationMode === "category" ? leafCategoryOptions : allCategoryOptions;
 
   return (
@@ -430,15 +420,17 @@ export default function AddPostForm({ onPostAdded, onCancel }) {
       </div>
 
       {/* 8. Permissions */}
-      <PermissionsSection
-        permissions={permissions}
-        commentsEnabled={values.comments_enabled}
-        onPermissionChange={handlePermissionChange}
-        onCommentsChange={handleChange}
-      />
+      <div className="mb-20">
+        <PermissionsSection
+          permissions={permissions}
+          commentsEnabled={values.comments_enabled}
+          onPermissionChange={handlePermissionChange}
+          onCommentsChange={handleChange}
+        />
+      </div>
 
       {/* 9. Action Buttons */}
-      <div className="flex justify-end gap-3 pt-4 border-t">
+      <div className="fixed bg-white right-12 left-5 bottom-14 flex justify-end gap-3 pt-4 border-t">
         <button
           type="button"
           onClick={onCancel}

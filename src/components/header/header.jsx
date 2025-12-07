@@ -49,9 +49,8 @@ export default function Header() {
           <nav className="flex items-center gap-3 sm:gap-4 lg:gap-6">
             {/* Hamburger/Close Button */}
             <div
-              className={`hamburger-menu bg-red-600 rounded-full p-1.5 sm:p-2 cursor-pointer border border-black transition-transform duration-300 ease-in-out ${
-                isMenuOpen ? 'rotate-90' : 'hover:bg-red-700'
-              }`}
+              className={`hamburger-menu bg-red-600 rounded-full p-1.5 sm:p-2 cursor-pointer border border-black transition-transform duration-300 ease-in-out ${isMenuOpen ? 'rotate-90' : 'hover:bg-red-700'
+                }`}
               onClick={toggleMenu}
             >
               {isMenuOpen ? (
@@ -108,15 +107,15 @@ export default function Header() {
             </div>
             {/* Search Button/Close Button */}
             <div
-              className={`search-icon cursor-pointer rounded-full p-1 sm:p-2 transition-colors ${
-                isSearchOpen ? 'bg-red-700 border border-black' : ' bg-none border border-gray-400'
-              }`}
+              className={`search-icon cursor-pointer rounded-full p-1 sm:p-2 transition-colors ${isSearchOpen ? 'bg-red-700 border border-black' : ' bg-none border border-gray-400'
+                }`}
               onClick={toggleSearch}
             >
               {isSearchOpen ? (
                 <X className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
               ) : (
                 <Image
+                  loader={({ src }) => src}
                   src="/search.png"
                   alt="Search"
                   width={24}
@@ -129,13 +128,13 @@ export default function Header() {
           </nav>
         </div>
       </header>
-      
+
       {/* Categories Overlay Component */}
       <CategoryOverlay isOpen={isMenuOpen} onClose={closeOverlays} />
 
       {/* Search Overlay Component */}
       <SearchOverlay isOpen={isSearchOpen} onClose={closeOverlays} />
-      
+
       {/* Adds necessary padding so content doesn't hide behind the fixed header - Responsive */}
       <div className="pt-[100px] sm:pt-[130px] lg:pt-[140px] w-full"></div>
     </>

@@ -17,6 +17,8 @@ import PermissionsSection from "./form-sections/PermissionsSection";
 const API_KEY = process.env.NEXT_PUBLIC_API_KEY;
 const API_HEADERS = { "x-api-key": API_KEY };
 
+const MAX_FILE_SIZE = 4 * 1024 * 1024;
+
 const fetchPost = async (postId) => {
   const res = await fetch(`/api/admin/posts?id=${postId}`);
   if (!res.ok) {
@@ -94,46 +96,46 @@ export default function EditPostForm({ postId, onPostUpdated, onCancel }) {
 
         // 2. Process Post Data for Form
         const authorId = post.author_id ? (post.author_id._id || post.author_id) : "";
-        const catIds = Array.isArray(post.category_ids) 
-            ? post.category_ids.map(id => id._id || id) 
-            : [];
+        const catIds = Array.isArray(post.category_ids)
+          ? post.category_ids.map(id => id._id || id)
+          : [];
         const subcatIds = Array.isArray(post.subcategory_ids)
-            ? post.subcategory_ids.map(id => id._id || id)
-            : [];
+          ? post.subcategory_ids.map(id => id._id || id)
+          : [];
         const formattedTags = Array.isArray(post.tags) ? post.tags.join(", ") : "";
 
         // 3. Determine Classification Mode based on existing data
         if (catIds.length > 0 && subcatIds.length > 0) {
-            setClassificationMode('both');
+          setClassificationMode('both');
         } else if (subcatIds.length > 0) {
-            setClassificationMode('subcategory');
+          setClassificationMode('subcategory');
         } else {
-            setClassificationMode('category'); // Default
+          setClassificationMode('category'); // Default
         }
 
         // 4. Set Values
         setValues({
-            _id: post._id,
-            title: post.title || "",
-            slug: post.slug || "",
-            excerpt: post.excerpt || "",
-            content: post.content || "",
-            author_id: authorId,
-            category_ids: catIds,
-            subcategory_ids: subcatIds,
-            tags: formattedTags,
-            status: post.status || "draft",
-            featured_image: post.featured_image || "",
-            comments_enabled: post.comments_enabled ?? true,
+          _id: post._id,
+          title: post.title || "",
+          slug: post.slug || "",
+          excerpt: post.excerpt || "",
+          content: post.content || "",
+          author_id: authorId,
+          category_ids: catIds,
+          subcategory_ids: subcatIds,
+          tags: formattedTags,
+          status: post.status || "draft",
+          featured_image: post.featured_image || "",
+          comments_enabled: post.comments_enabled ?? true,
         });
 
         // 5. Set Permissions
         if (post.permissions) {
-            setPermissions({
-                is_featured: post.permissions.is_featured || false,
-                is_premium: post.permissions.is_premium || false,
-                is_slide_article: post.permissions.is_slide_article || false,
-            });
+          setPermissions({
+            is_featured: post.permissions.is_featured || false,
+            is_premium: post.permissions.is_premium || false,
+            is_slide_article: post.permissions.is_slide_article || false,
+          });
         }
 
         setOriginalTitle(post.title);
@@ -150,39 +152,36 @@ export default function EditPostForm({ postId, onPostUpdated, onCancel }) {
   }, [postId]);
 
   // --- DERIVED OPTIONS (Updated Logic) ---
-  
+
   // 1. Identify Parent Category IDs (Categories that have subcategories)
   const parentCategoryIds = useMemo(() => {
     return new Set(subCategories.map((sub) => sub.parent_id));
   }, [subCategories]);
 
   // 2. Create Option List with ALL categories
-  const allCategoryOptions = useMemo(() => 
-    categories.map((c) => ({ label: c.name, value: c._id })), 
+  const allCategoryOptions = useMemo(() =>
+    categories.map((c) => ({ label: c.name, value: c._id })),
     [categories]
   );
 
   // 3. Create Option List with ONLY Leaf categories (No parents)
-  const leafCategoryOptions = useMemo(() => 
+  const leafCategoryOptions = useMemo(() =>
     categories
       .filter((c) => !parentCategoryIds.has(c._id))
-      .map((c) => ({ label: c.name, value: c._id })), 
+      .map((c) => ({ label: c.name, value: c._id })),
     [categories, parentCategoryIds]
   );
 
-  const subCategoryOptions = useMemo(() => 
-    subCategories.map((s) => ({ label: s.name, value: s._id })), 
+  const subCategoryOptions = useMemo(() =>
+    subCategories.map((s) => ({ label: s.name, value: s._id })),
     [subCategories]
   );
 
-  const authorOptions = useMemo(() => 
-    authors.map((a) => ({ label: a.name, value: a._id })), 
+  const authorOptions = useMemo(() =>
+    authors.map((a) => ({ label: a.name, value: a._id })),
     [authors]
   );
 
-  // --- HANDLERS ---
-  
-  // Smart Slug Logic (Unique to Edit Form: prevents overwriting manual slugs)
   useEffect(() => {
     const isSlugManuallyEdited = values.slug !== slugify(originalTitle);
     if (values.title && !isSlugManuallyEdited && values.title !== originalTitle) {
@@ -192,7 +191,7 @@ export default function EditPostForm({ postId, onPostUpdated, onCancel }) {
 
   const handleRegenerateSlug = () => {
     if (values.title) {
-        setValues((s) => ({ ...s, slug: slugify(values.title) }));
+      setValues((s) => ({ ...s, slug: slugify(values.title) }));
     }
   };
 
@@ -206,9 +205,9 @@ export default function EditPostForm({ postId, onPostUpdated, onCancel }) {
     setError("");
 
     if (name === 'slug') {
-        setValues((s) => ({ ...s, [name]: slugify(value) }));
+      setValues((s) => ({ ...s, [name]: slugify(value) }));
     } else {
-        setValues((s) => ({ ...s, [name]: type === "checkbox" ? checked : value }));
+      setValues((s) => ({ ...s, [name]: type === "checkbox" ? checked : value }));
     }
   };
 
@@ -236,11 +235,17 @@ export default function EditPostForm({ postId, onPostUpdated, onCancel }) {
       setImageError("");
       setValues((s) => ({ ...s, featured_image: "" }));
     } else {
-        setSelectedFile(null);
+      setSelectedFile(null);
     }
   };
 
   const uploadImage = useCallback(async (file) => {
+    if (file.size > MAX_FILE_SIZE) {
+      setImageError("File is too large. Max size is 4MB.");
+      setValues((s) => ({ ...s, featured_image: initialPostData?.featured_image || "" }));
+      return null;
+    }
+
     setImageUploadLoading(true);
     setImageError("");
     try {
@@ -256,7 +261,6 @@ export default function EditPostForm({ postId, onPostUpdated, onCancel }) {
       return json.imageUrl;
     } catch (err) {
       setImageError(err.message);
-      // Revert to original if upload fails
       setValues((s) => ({ ...s, featured_image: initialPostData?.featured_image || "" }));
       return null;
     } finally {
@@ -306,21 +310,21 @@ export default function EditPostForm({ postId, onPostUpdated, onCancel }) {
     }
 
     if (classificationMode === "category" && values.category_ids.length === 0) {
-        setError("Please select at least one Category.");
-        setLoading(false);
-        return;
+      setError("Please select at least one Category.");
+      setLoading(false);
+      return;
     }
     if (classificationMode === "subcategory" && values.subcategory_ids.length === 0) {
-        setError("Please select at least one Subcategory.");
-        setLoading(false);
-        return;
+      setError("Please select at least one Subcategory.");
+      setLoading(false);
+      return;
     }
     if (classificationMode === "both") {
-        if (values.category_ids.length === 0 || values.subcategory_ids.length === 0) {
+      if (values.category_ids.length === 0 || values.subcategory_ids.length === 0) {
         setError("Both Category and Subcategory selections are required.");
         setLoading(false);
         return;
-        }
+      }
     }
 
     const hasContent = values.content.replace(/<[^>]*>/g, "").trim().length > 0;
@@ -333,16 +337,16 @@ export default function EditPostForm({ postId, onPostUpdated, onCancel }) {
     // Image Upload
     let finalImageUrl = values.featured_image;
     if (selectedFile) {
-        if (imageUploadLoading) {
-            setLoading(false);
-            return;
-        }
-        const url = await uploadImage(selectedFile);
-        if (!url) {
-            setLoading(false);
-            return;
-        }
-        finalImageUrl = url;
+      if (imageUploadLoading) {
+        setLoading(false);
+        return;
+      }
+      const url = await uploadImage(selectedFile);
+      if (!url) {
+        setLoading(false);
+        return;
+      }
+      finalImageUrl = url;
     }
 
     const payload = {
@@ -374,7 +378,7 @@ export default function EditPostForm({ postId, onPostUpdated, onCancel }) {
 
   // --- RENDER HELPERS ---
   const currentAuthorValue = authorOptions.find((opt) => opt.value === values.author_id) || null;
-  
+
   const statusOptions = [
     { label: "Draft", value: "draft" },
     { label: "Published", value: "published" },
@@ -388,12 +392,12 @@ export default function EditPostForm({ postId, onPostUpdated, onCancel }) {
 
   if (isInitialLoading) {
     return (
-        <div className="flex justify-center items-center h-40 text-blue-600">
-            <Loader2 className="w-6 h-6 mr-2 animate-spin" />
-            Loading post data...
-        </div>
+      <div className="flex justify-center items-center h-40 text-blue-600">
+        <Loader2 className="w-6 h-6 mr-2 animate-spin" />
+        Loading post data...
+      </div>
     );
-   }
+  }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
@@ -434,19 +438,19 @@ export default function EditPostForm({ postId, onPostUpdated, onCancel }) {
           <label className="block text-sm font-medium mb-1">Slug *</label>
           <div className="flex gap-2">
             <input
-                name="slug"
-                value={values.slug}
-                onChange={handleChange}
-                required
-                className="w-full border border-gray-300 rounded-md px-3 py-2 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-red-500"
+              name="slug"
+              value={values.slug}
+              onChange={handleChange}
+              required
+              className="w-full border border-gray-300 rounded-md px-3 py-2 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-red-500"
             />
             <button
-                type="button"
-                onClick={handleRegenerateSlug}
-                title="Regenerate slug from current title"
-                className="px-3 py-2 text-sm border rounded-md bg-gray-100 hover:bg-gray-200 transition flex items-center"
+              type="button"
+              onClick={handleRegenerateSlug}
+              title="Regenerate slug from current title"
+              className="px-3 py-2 text-sm border rounded-md bg-gray-100 hover:bg-gray-200 transition flex items-center"
             >
-                <RotateCw className="w-4 h-4" />
+              <RotateCw className="w-4 h-4" />
             </button>
           </div>
         </div>

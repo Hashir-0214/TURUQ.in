@@ -26,6 +26,7 @@ export default function FeaturedArticles({ articles }) {
           {/* Image */}
           <div className="article-image mb-4 h-[150px] md:h-[250px] w-full overflow-hidden rounded-xl">
               <Image
+                  loader={({ src }) => src}
                   src={article.imageSrc}
                   alt={article.title}
                   width={400}

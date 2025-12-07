@@ -3,14 +3,21 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
-    loader: "custom",
-    loaderFile: "src/lib/cloudinary-loader.js",
     remotePatterns: [
       {
         protocol: "https",
         hostname: "res.cloudinary.com",
       },
+      {
+        protocol: "https",
+        hostname: "placehold.co",
+      },
     ],
+  },
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '5mb',
+    },
   },
 };
 

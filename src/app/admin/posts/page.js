@@ -23,7 +23,7 @@ const fetchPosts = async (page = 1) => {
     const res = await fetch(`/api/admin/posts?page=${page}&limit=20`, {
       method: "GET",
       headers: { "Content-Type": "application/json" },
-      cache: "no-store", // Ensure we don't get cached stale data
+      cache: "no-store",
     });
 
     if (!res.ok) throw new Error(`Failed to fetch posts: ${res.status}`);
@@ -108,7 +108,6 @@ export default function PostsPage() {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // PAGINATION STATE
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
 
@@ -218,7 +217,7 @@ export default function PostsPage() {
         isOpen={isModalOpen}
         onClose={closeModal}
         title={editingPostId ? "Edit Post" : "Add New Post"}
-        className="max-w-4xl"
+        className="max-w-full"
       >
         {editingPostId ? (
           <EditPostForm

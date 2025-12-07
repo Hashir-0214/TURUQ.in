@@ -49,7 +49,6 @@ export async function POST(req) {
     const uploadResult = await cloudinary.uploader.upload(dataUrl, {
       folder: "turuq",
       resource_type: "auto",
-      // ADDED: Explicitly set the format to 'webp' for conversion
       format: "webp",
     });
 

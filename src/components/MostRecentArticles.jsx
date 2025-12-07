@@ -1,3 +1,5 @@
+
+// src/components/MostRecentArticles.jsx
 'use client';
 
 import Image from "next/image";
@@ -26,6 +28,7 @@ export default function MostRecentArticles({ articles }) {
           {/* Main Image */}
           <div className="side-article-image w-full rounded-xl overflow-hidden aspect-video">
             <Image
+              loader={({ src }) => src}
               src={mainArticle.imageSrc}
               alt={mainArticle.title}
               width={600}
@@ -79,6 +82,7 @@ export default function MostRecentArticles({ articles }) {
             {/* Mobile: Full Width, 200px Height. Desktop: Fixed Width Square */}
             <div className="side-article-image w-full h-[200px] sm:w-[160px] sm:h-[160px] lg:w-[180px] lg:h-[180px] shrink-0 rounded-xl overflow-hidden">
               <Image
+                loader={({ src }) => src}
                 src={article.imageSrc} 
                 alt={article.title}
                 width={180}
