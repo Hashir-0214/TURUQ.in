@@ -57,8 +57,7 @@ const mapArticleData = (article) => {
     id: article._id.toString(),
     is_featured: article.permissions?.is_featured || false,
     is_slide: article.permissions?.is_slide_article || false,
-
-    // Standardized Keys
+    views: article.views || 0,
     title: article.title || 'Untitled Article',
     slug: article.slug,
     description: article.excerpt || (article.content ? article.content.replace(/<[^>]*>/g, '').substring(0, 150) + '...' : 'No description available.'),
