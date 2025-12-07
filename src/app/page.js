@@ -11,7 +11,7 @@ import PopularArticles from '@/components/popularSection';
 export const dynamic = 'force-dynamic'; 
 
 export default async function Home() {
-  const { heroArticles, featuredArticles, mostRecentArticles } = await getHomeData();
+  const { heroArticles, featuredArticles, mostRecentArticles, popularArticles } = await getHomeData();
 
   if (!featuredArticles.length && !mostRecentArticles.length && !heroArticles.length) {
     return (
@@ -49,8 +49,8 @@ export default async function Home() {
       </section>
 
       <section className="popular-articles mb-16 w-full">
-        <SectionHeader> Popular Section </SectionHeader>
-        <PopularArticles articles={mostRecentArticles} />
+        <SectionHeader > Popular Section </SectionHeader>
+        <PopularArticles articles={popularArticles} />
       </section>
     </main>
   );

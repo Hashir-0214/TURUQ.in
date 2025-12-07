@@ -1,7 +1,7 @@
 // src/lib/article-service.js
 import dbConnect from "@/mongodb";
 import Post from "@/models/Post";
-import "@/models/Author"; 
+import "@/models/Author";
 import "@/models/SubCategory";
 import "@/models/Category";
 
@@ -25,7 +25,7 @@ const mapArticleData = (article) => {
   }
 
   let categories = [];
-  
+
   const subIds = article.subcategory_ids || [];
   const catIds = article.category_ids || [];
 
@@ -57,7 +57,7 @@ const mapArticleData = (article) => {
     id: article._id.toString(),
     is_featured: article.permissions?.is_featured || false,
     is_slide: article.permissions?.is_slide_article || false,
-    
+
     // Standardized Keys
     title: article.title || 'Untitled Article',
     slug: article.slug,
@@ -81,9 +81,9 @@ export async function getHomeData() {
       .populate({
         path: 'subcategory_ids',
         populate: {
-            path: 'parent_id',
-            model: 'Category',
-            select: 'slug'
+          path: 'parent_id',
+          model: 'Category',
+          select: 'slug'
         }
       })
       .lean()
@@ -91,18 +91,21 @@ export async function getHomeData() {
 
     const allMappedArticles = posts.map(article => mapArticleData(article));
 
-    // Filter Logic
     const heroArticles = allMappedArticles
-        .filter(a => a.is_slide)
-        .slice(0, 5);
+      .filter(a => a.is_slide)
+      .slice(0, 5);
 
     const featuredArticles = allMappedArticles
-        .filter(a => a.is_featured)
-        .slice(0, 4);
+      .filter(a => a.is_featured)
+      .slice(0, 4);
+
+    const popularArticles = [...allMappedArticles]
+      .sort((a, b) => b.views - a.views)
+      .slice(0, 4);
 
     const mostRecentArticles = allMappedArticles.slice(0, 12);
 
-    return { heroArticles, featuredArticles, mostRecentArticles };
+    return { heroArticles, featuredArticles, mostRecentArticles, popularArticles };
 
   } catch (error) {
     console.error("Service Error in getHomeData:", error);

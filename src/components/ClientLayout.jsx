@@ -9,7 +9,6 @@ export default function ClientLayout({ children }) {
   const [loading, setLoading] = useState(false);
   const pathname = usePathname();
 
-  // Logic: Check if we are in admin or auth pages
   const isAdmin = pathname?.startsWith("/admin");
   const isAuthPage = pathname === "/admin/login" || pathname === "/admin/register";
   const shouldHideLayout = isAdmin || isAuthPage; 

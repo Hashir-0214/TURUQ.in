@@ -24,7 +24,7 @@ export default function FeaturedArticles({ articles }) {
           data-aos-delay={(index + 1) * 100}
         >
           {/* Image */}
-          <div className="article-image mb-4 h-[150px] md:h-[250px] w-full overflow-hidden rounded-xl">
+          <div className="article-image mb-4 h-[200px] md:h-[250px] w-full overflow-hidden rounded-xl">
               <Image
                   loader={({ src }) => src}
                   src={article.imageSrc}
@@ -32,7 +32,7 @@ export default function FeaturedArticles({ articles }) {
                   width={400}
                   height={250}
                   sizes="(max-width: 768px) 100vw, 25vw"
-                  className="h-full w-full object-cover transition-transform hover:scale-105"
+                  className="h-full w-full object-cover transition-transform hover:scale-102 hover:opacity-80"
                   onError={(e) => { e.currentTarget.src = 'https://placehold.co/400x250/ccc/333?text=Image+Missing'; }}
               />
           </div>
