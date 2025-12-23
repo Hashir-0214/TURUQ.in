@@ -1,5 +1,7 @@
 // components/Footer.jsx
+import { ExternalLink } from 'lucide-react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { BsTwitterX, BsInstagram, BsFacebook } from "react-icons/bs";
 
 export default function Footer() {
@@ -20,20 +22,31 @@ export default function Footer() {
               <span>Instagram</span>
             </a>
             <a href="#" className="flex items-center justify-center sm:justify-start gap-2 font-poppins text-[15px] font-normal text-[#575757] capitalize transition-colors hover:text-[#d64545]">
-              <BsTwitterX  size={20} />
+              <BsTwitterX size={20} />
               <span>X.com</span>
             </a>
           </div>
         </div>
       </div>
-      {/* <div className="text-center py-5 w-[83%] max-w-[1250px] mx-auto">
+      <div className="text-center py-5 w-[83%] max-w-[1250px] mx-auto">
         <div className="flex flex-col gap-2">
-          <span className="font-poppins text-[15px] font-normal text-[#717171]">© 2025 TURUQ</span>
+          <span className="font-poppins text-[15px] font-normal text-[#717171]">
+            © 2025 TURUQ
+          </span>
+
           <span className="font-poppins text-[13px] font-normal text-[#888888]">
-            Developed by <span className="text-[#d64545] font-medium">Your Name</span>
+            Developed by{" "}
+            <Link
+              href="https://yourname.in"
+              className="inline-flex items-center gap-1 text-[#d64545] font-medium"
+            >
+              yourname
+              <ExternalLink size={13} />
+            </Link>
           </span>
         </div>
-      </div> */}
+      </div>
+
     </footer>
   );
 }

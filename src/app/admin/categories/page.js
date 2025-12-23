@@ -7,7 +7,6 @@ import Table from "@/components/admin/ui/Table";
 import { useNotification } from "@/components/ui/notification/NotificationProvider";
 import Modal from "@/components/admin/ui/modal/Modal";
 
-// Forms
 import AddCategoryForm from "@/components/admin/categories/AddCategoryForm";
 import AddSubCategoryForm from "@/components/admin/categories/AddSubCategoryForm";
 import EditCategoryForm from "@/components/admin/categories/EditCategoryForm"; 
@@ -43,12 +42,10 @@ export default function Categories() {
   const { addNotification } = useNotification();
   const [loading, setLoading] = useState(true);
   
-  // Data State
   const [categoryData, setCategoryData] = useState([]); 
   const [subCategoryData, setSubCategoryData] = useState([]); 
   const [mainTab, setMainTab] = useState(true); // true = Categories, false = SubCategories
 
-  // Modal States
   const [isAddCategoryModalOpen, setIsAddCategoryModalOpen] = useState(false);
   const [isAddSubCategoryModalOpen, setIsAddSubCategoryModalOpen] = useState(false);
   const [isEditCategoryModalOpen, setIsEditCategoryModalOpen] = useState(false);
@@ -62,14 +59,12 @@ export default function Categories() {
   const handleEdit = useCallback(
     (id) => {
       if (mainTab) {
-        // Edit Category
         const itemToEdit = categoryData.find((item) => item._id === id);
         if (itemToEdit) {
           setEditingItem(itemToEdit);
           setIsEditCategoryModalOpen(true);
         }
       } else {
-        // Edit SubCategory
         const itemToEdit = subCategoryData.find((item) => item._id === id);
         if (itemToEdit) {
           setEditingItem(itemToEdit);

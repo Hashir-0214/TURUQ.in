@@ -26,7 +26,7 @@ const navItems = [
   },
   { label: "Posts", href: "/admin/posts", icon: FileText },
   { label: "Categories", href: "/admin/categories", icon: FolderOpen },
-  { label: "Packets", href: "/admin/packets", icon: Package },
+  { label: "Webzines", href: "/admin/webzines", icon: Package },
   { label: "Slides", href: "/admin/slides", icon: Presentation },
   { label: "Comments", href: "/admin/comments", icon: MessageSquare },
   { label: "Authors", href: "/admin/authors", icon: PenTool },

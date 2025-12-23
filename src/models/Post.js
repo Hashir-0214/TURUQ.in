@@ -27,7 +27,11 @@ const PostSchema = new mongoose.Schema(
       ref: 'Author',
       required: true,
     },
-    // --- CRITICAL SECTION START ---
+    webzine_id: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Webzine',
+      default: null,
+    },
     category_ids: [{
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Category',
@@ -84,8 +88,6 @@ const PostSchema = new mongoose.Schema(
   }
 );
 
-// Ensure index for efficient queries on status
 PostSchema.index({ status: 1 });
 
-// Check if the model exists before compiling it to prevent OverwriteModelError in dev
 export default mongoose.models.Post || mongoose.model('Post', PostSchema);
