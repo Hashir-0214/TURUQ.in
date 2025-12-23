@@ -37,7 +37,6 @@ export const AddWebzineForm = ({ onWebzineAdded, onCancel }) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    // Optional: Check file size (e.g., limit to 5MB)
     if (file.size > 5 * 1024 * 1024) {
       setError("File size too large. Please upload an image under 5MB.");
       return;
@@ -70,7 +69,6 @@ export const AddWebzineForm = ({ onWebzineAdded, onCancel }) => {
       setError("Failed to upload image. Please try again.");
     } finally {
       setUploadingImage(false);
-      // Reset the file input value so the same file can be selected again if needed
       e.target.value = null;
     }
   };
