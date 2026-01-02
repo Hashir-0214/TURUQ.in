@@ -44,31 +44,31 @@ export async function GET(request) {
     // 1. Fetch Single Post
     if (postId) {
       const post = await Post.findById(postId)
-          .populate('author_id', 'name email avatar')
-          .populate('category_ids', 'name slug') 
-          .populate('subcategory_ids', 'name slug')
-          .lean();
+        .populate('author_id', 'name email avatar')
+        .populate('category_ids', 'name slug')
+        .populate('subcategory_ids', 'name slug')
+        .lean();
       if (!post) return NextResponse.json({ message: "Post not found" }, { status: 404 });
       return NextResponse.json({ data: post });
     }
-    
+
     // 2. Fetch List (Optimized)
     const page = parseInt(searchParams.get('page')) || 1;
     const limit = parseInt(searchParams.get('limit')) || 20;
     const skip = (page - 1) * limit;
-    
+
     const totalPosts = await Post.countDocuments();
     const posts = await Post.find({})
-        .select('-content -blocks -markdown')
-        .sort({ created_at: -1 })
-        .skip(skip)
-        .limit(limit)
-        .populate('author_id', 'name avatar')
-        .populate('category_ids', 'name')
-        .populate('subcategory_ids', 'name')
-        .lean();
+      .select('-content -blocks -markdown')
+      .sort({ created_at: -1 })
+      .skip(skip)
+      .limit(limit)
+      .populate('author_id', 'name avatar')
+      .populate('category_ids', 'name')
+      .populate('subcategory_ids', 'name')
+      .lean();
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       data: posts,
       pagination: { total: totalPosts, page, pages: Math.ceil(totalPosts / limit) }
     });
@@ -93,23 +93,23 @@ export async function POST(request) {
     }
 
     if (data.author_id) {
-       const authorExists = await Author.findById(data.author_id);
-       if (!authorExists) {
-         return NextResponse.json({ message: 'Invalid Author ID provided.' }, { status: 400 });
-       }
+      const authorExists = await Author.findById(data.author_id);
+      if (!authorExists) {
+        return NextResponse.json({ message: 'Invalid Author ID provided.' }, { status: 400 });
+      }
     }
 
     let postSlug = data.slug ? slugify(data.slug) : slugify(data.title);
-    
+
     const existingPost = await Post.findOne({ slug: postSlug });
     if (existingPost) {
-        postSlug = `${postSlug}-${Math.floor(Math.random() * 10000)}`;
+      postSlug = `${postSlug}-${Math.floor(Math.random() * 10000)}`;
     }
-    
+
     const permissions = {
-        is_slide_article: data.permissions?.is_slide_article || false,
-        is_premium: data.permissions?.is_premium || false,
-        is_featured: data.permissions?.is_featured || false,
+      is_slide_article: data.permissions?.is_slide_article || false,
+      is_premium: data.permissions?.is_premium || false,
+      is_featured: data.permissions?.is_featured || false,
     };
 
     const newPost = new Post({
@@ -145,56 +145,56 @@ export async function PUT(request) {
     const { _id, slug: incomingSlug, title, permissions, ...updateData } = data;
 
     if (!_id) {
-        return NextResponse.json({ message: 'Post ID is required.' }, { status: 400 });
+      return NextResponse.json({ message: 'Post ID is required.' }, { status: 400 });
     }
-    
+
     // Slug Logic
     let finalSlug = undefined;
     if (incomingSlug || title) {
-        const base = incomingSlug && incomingSlug.trim() !== '' ? incomingSlug : title;
-        if(base) {
-            finalSlug = slugify(base);
-            const conflict = await Post.findOne({ slug: finalSlug, _id: { $ne: _id } });
-            if (conflict) {
-                 return NextResponse.json({ error: `Slug '${finalSlug}' is already taken.` }, { status: 409 });
-            }
+      const base = incomingSlug && incomingSlug.trim() !== '' ? incomingSlug : title;
+      if (base) {
+        finalSlug = slugify(base);
+        const conflict = await Post.findOne({ slug: finalSlug, _id: { $ne: _id } });
+        if (conflict) {
+          return NextResponse.json({ error: `Slug '${finalSlug}' is already taken.` }, { status: 409 });
         }
+      }
     }
 
     const update = {
-        ...updateData,
-        tags: Array.isArray(updateData.tags) ? updateData.tags : (updateData.tags || []),
-        subcategory_ids: updateData.subcategory_ids || [],
-        category_ids: updateData.category_ids || [],
+      ...updateData,
+      tags: Array.isArray(updateData.tags) ? updateData.tags : (updateData.tags || []),
+      subcategory_ids: updateData.subcategory_ids || [],
+      category_ids: updateData.category_ids || [],
     };
-    
+
     if (title) update.title = title;
     if (finalSlug) update.slug = finalSlug;
-    
+
     // Handle permissions update if provided
     if (permissions) {
-        update.permissions = {
-            is_slide_article: permissions.is_slide_article,
-            is_premium: permissions.is_premium,
-            is_featured: permissions.is_featured,
-        };
+      update.permissions = {
+        is_slide_article: permissions.is_slide_article,
+        is_premium: permissions.is_premium,
+        is_featured: permissions.is_featured,
+      };
     }
-    
-    delete update.views; 
-    delete update.created_at; 
+
+    delete update.views;
+    delete update.created_at;
 
     const updatedPost = await Post.findByIdAndUpdate(
-        _id, 
-        update, 
-        { new: true, runValidators: true } 
+      _id,
+      update,
+      { new: true, runValidators: true }
     )
-    .populate('author_id') 
-    // ADDED: Populate here so the response confirms the save worked
-    .populate('category_ids') 
-    .populate('subcategory_ids');
+      .populate('author_id')
+      // ADDED: Populate here so the response confirms the save worked
+      .populate('category_ids')
+      .populate('subcategory_ids');
 
     if (!updatedPost) {
-        return NextResponse.json({ message: "Post not found" }, { status: 404 });
+      return NextResponse.json({ message: "Post not found" }, { status: 404 });
     }
 
     return NextResponse.json({ data: updatedPost });
@@ -212,33 +212,66 @@ export async function DELETE(request) {
 
   try {
     await dbConnect();
-    
+
     let idToDelete = null;
     const { searchParams } = new URL(request.url);
     idToDelete = searchParams.get('id');
 
     if (!idToDelete) {
-        try {
-            const body = await request.json();
-            idToDelete = body._id || body.id;
-        } catch (e) {
-            console.error(e);
-        }
+      try {
+        const body = await request.json();
+        idToDelete = body._id || body.id;
+      } catch (e) {
+        console.error(e);
+      }
     }
-    
+
     if (!idToDelete) {
       return NextResponse.json({ message: 'Post ID is required' }, { status: 400 });
     }
 
     const deleted = await Post.findByIdAndDelete(idToDelete);
-    
+
     if (!deleted) {
-        return NextResponse.json({ message: "Post not found" }, { status: 404 });
+      return NextResponse.json({ message: "Post not found" }, { status: 404 });
     }
 
     return NextResponse.json({ message: 'Post deleted successfully' });
   } catch (error) {
     console.error("DELETE Error:", error);
     return NextResponse.json({ error: 'Error deleting post' }, { status: 500 });
+  }
+}
+
+export async function PATCH(request) {
+  if (!(await isAuthenticated())) {
+    return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+  }
+
+  try {
+    await dbConnect();
+    const body = await request.json();
+    const { _id, webzine_id } = body;
+
+    if (!_id) {
+      return NextResponse.json({ message: "Post ID is required" }, { status: 400 });
+    }
+
+    // Update only the webzine_id field
+    const updatedPost = await Post.findByIdAndUpdate(
+      _id,
+      { webzine_id: webzine_id }, // Set the new webzine_id (or null)
+      { new: true } // Return the updated document
+    );
+
+    if (!updatedPost) {
+      return NextResponse.json({ message: "Post not found" }, { status: 404 });
+    }
+
+    return NextResponse.json({ data: updatedPost });
+
+  } catch (error) {
+    console.error("PATCH Error:", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

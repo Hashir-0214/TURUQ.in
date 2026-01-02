@@ -17,7 +17,7 @@ import {
   Settings,
 } from "lucide-react";
 
-const navItems = [
+const mainNavItems = [
   {
     label: "Dashboard",
     href: "/admin",
@@ -26,13 +26,16 @@ const navItems = [
   },
   { label: "Posts", href: "/admin/posts", icon: FileText },
   { label: "Categories", href: "/admin/categories", icon: FolderOpen },
-  { label: "Webzines", href: "/admin/webzines", icon: Package },
   { label: "Slides", href: "/admin/slides", icon: Presentation },
   { label: "Comments", href: "/admin/comments", icon: MessageSquare },
   { label: "Authors", href: "/admin/authors", icon: PenTool },
   { label: "Users", href: "/admin/users", icon: Users },
   { label: "Subscription", href: "/admin/subscription", icon: Mail },
   { label: "Settings", href: "/admin/settings", icon: Settings },
+];
+
+const webzineItems = [
+  { label: "Webzines", href: "/admin/webzines", icon: Package },
 ];
 
 export default function Sidebar() {
@@ -54,6 +57,81 @@ export default function Sidebar() {
     },
   };
 
+  const renderNavItem = (item, idx, totalLength) => {
+    const active = isActive(item.href, item.match);
+    return (
+      <motion.div
+        key={item.href}
+        variants={itemVariants}
+        animate="visible"
+        className="relative"
+      >
+        <Link
+          href={item.href}
+          className={`relative flex items-center gap-3 px-[34px] py-2 text-black no-underline font-medium text-[14px] transition-all duration-300 group ${
+            active ? "bg-[#f2cfa6]" : "hover:bg-[#f2cfa6]/50"
+          }`}
+        >
+          {/* Active indicator */}
+          {active && (
+            <motion.div
+              layoutId="activeIndicator"
+              className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-orange-400 to-amber-500 rounded-r-full"
+              initial={false}
+              transition={{
+                type: "spring",
+                stiffness: 380,
+                damping: 30,
+              }}
+            />
+          )}
+
+          {/* Icon with animation */}
+          <motion.div
+            whileHover={{ scale: 1.1, rotate: 5 }}
+            whileTap={{ scale: 0.95 }}
+            transition={{ type: "spring", stiffness: 400, damping: 17 }}
+            className={`relative ${
+              active
+                ? "text-orange-600"
+                : "text-gray-700 group-hover:text-orange-500"
+            }`}
+          >
+            <item.icon className="w-5 h-5" />
+          </motion.div>
+
+          {/* Label */}
+          <motion.span
+            className={`transition-colors duration-300 ${
+              active
+                ? "text-gray-900 font-semibold"
+                : "text-gray-700 group-hover:text-gray-900"
+            }`}
+          >
+            {item.label}
+          </motion.span>
+
+          {/* Hover effect background */}
+          <motion.div
+            className="absolute inset-0 bg-gradient-to-r from-orange-200/0 via-orange-200/20 to-orange-200/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+            style={{ pointerEvents: "none" }}
+          />
+        </Link>
+
+        {/* Divider logic: Show divider only if it's NOT the last item in this specific list */}
+        {idx < totalLength - 1 && (
+          <motion.div
+            initial={{ scaleX: 0 }}
+            animate={{ scaleX: 1 }}
+            transition={{ delay: idx * 0.05 + 0.3, duration: 0.3 }}
+            className="w-[70%] h-px bg-gradient-to-r from-transparent via-black/20 to-transparent mx-auto my-1"
+            style={{ originX: 0.5 }}
+          />
+        )}
+      </motion.div>
+    );
+  };
+
   return (
     <motion.aside
       initial={false}
@@ -72,83 +150,21 @@ export default function Sidebar() {
         <div className="w-full h-1 bg-gradient-to-r from-orange-400 to-amber-500 rounded-full" />
       </motion.div>
 
-      {/* Navigation Items */}
       <nav className="relative">
-        {navItems.map((item, idx) => {
-          const active = isActive(item.href, item.match);
+        {/* Render Main Items */}
+        {mainNavItems.map((item, idx) =>
+          renderNavItem(item, idx, mainNavItems.length)
+        )}
 
-          return (
-            <motion.div
-              key={item.href}
-              variants={itemVariants} 
-              animate="visible"
-              className="relative"
-            >
-              <Link
-                href={item.href}
-                className={`relative flex items-center gap-3 px-[34px] py-2 text-black no-underline font-medium text-[14px] transition-all duration-300 group ${
-                  active ? "bg-[#f2cfa6]" : "hover:bg-[#f2cfa6]/50"
-                }`}
-              >
-                {/* Active indicator */}
-                {active && (
-                  <motion.div
-                    layoutId="activeIndicator"
-                    className="absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-orange-400 to-amber-500 rounded-r-full"
-                    initial={false}
-                    transition={{
-                      type: "spring",
-                      stiffness: 380,
-                      damping: 30,
-                    }}
-                  />
-                )}
+        {/* Section Divider for Webzines */}
+        <div className="mt-4 mb-2 px-[34px]">
+          <div className="h-1 bg-amber-500 mb-2" />
+        </div>
 
-                {/* Icon with animation */}
-                <motion.div
-                  whileHover={{ scale: 1.1, rotate: 5 }}
-                  whileTap={{ scale: 0.95 }}
-                  transition={{ type: "spring", stiffness: 400, damping: 17 }}
-                  className={`relative ${
-                    active
-                      ? "text-orange-600"
-                      : "text-gray-700 group-hover:text-orange-500"
-                  }`}
-                >
-                  <item.icon className="w-5 h-5" />
-                </motion.div>
-
-                {/* Label */}
-                <motion.span
-                  className={`transition-colors duration-300 ${
-                    active
-                      ? "text-gray-900 font-semibold"
-                      : "text-gray-700 group-hover:text-gray-900"
-                  }`}
-                >
-                  {item.label}
-                </motion.span>
-
-                {/* Hover effect background */}
-                <motion.div
-                  className="absolute inset-0 bg-gradient-to-r from-orange-200/0 via-orange-200/20 to-orange-200/0 opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                  style={{ pointerEvents: "none" }}
-                />
-              </Link>
-
-              {/* Divider with animation */}
-              {idx < navItems.length - 1 && (
-                <motion.div
-                  initial={{ scaleX: 0 }}
-                  animate={{ scaleX: 1 }}
-                  transition={{ delay: idx * 0.05 + 0.3, duration: 0.3 }}
-                  className="w-[70%] h-px bg-gradient-to-r from-transparent via-black/20 to-transparent mx-auto my-1"
-                  style={{ originX: 0.5 }}
-                />
-              )}
-            </motion.div>
-          );
-        })}
+        {/* Render Webzine Items */}
+        {webzineItems.map((item, idx) =>
+          renderNavItem(item, idx, webzineItems.length)
+        )}
       </nav>
 
       {/* Footer decoration */}

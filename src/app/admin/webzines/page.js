@@ -3,14 +3,16 @@
 
 import { useEffect, useState, useCallback } from 'react';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation'; // Added for navigation
 import {
   PlusCircle,
   Trash2,
   Edit,
-  BookOpen, // Icone pour Webzine par défaut
+  BookOpen,
   LoaderCircle,
+  Calendar,
+  LayoutGrid
 } from 'lucide-react';
-import Table from '@/components/admin/ui/Table';
 import Modal from '@/components/admin/ui/modal/Modal';
 import { useNotification } from '@/components/ui/notification/NotificationProvider';
 import { AddWebzineForm } from '@/components/admin/webzines/AddWebzineForm';
@@ -43,7 +45,6 @@ const fetchWebzines = async (addNotification) => {
 
     const jsonData = await res.json();
     
-    // Supporte à la fois le retour direct array ou { data: [] }
     if (Array.isArray(jsonData)) return jsonData;
     return Array.isArray(jsonData.data) ? jsonData.data : [];
 
@@ -56,92 +57,8 @@ const fetchWebzines = async (addNotification) => {
   }
 }
 
-// --- TABLE COLUMNS CONFIG ---
-const columns = [
-  {
-    key: 'name',
-    header: 'Webzine Name',
-    sortable: true,
-    render: (row) => (
-      <div className="flex items-center gap-3">
-        <div className="w-10 h-14 rounded overflow-hidden border border-black/20 bg-gray-100 flex-shrink-0">
-          {row.cover_image ? (
-            <Image
-              loader={({ src }) => src}
-              src={row.cover_image}
-              alt={row.name}
-              width={40}
-              height={56}
-              className="object-cover w-full h-full"
-            />
-          ) : (
-            <div className="w-full h-full grid place-items-center">
-              <BookOpen className="w-5 h-5 text-gray-400" />
-            </div>
-          )}
-        </div>
-        <div>
-           <span className="font-bold block">{row.name}</span>
-           <span className="text-xs text-gray-500">{row.slug}</span>
-        </div>
-      </div>
-    ),
-  },
-  {
-    key: 'status',
-    header: 'Status',
-    sortable: true,
-    render: (row) => {
-        let colorClass = "bg-gray-100 text-gray-800";
-        if (row.status === 'published') colorClass = "bg-green-100 text-green-800 border-green-200";
-        if (row.status === 'archived') colorClass = "bg-yellow-100 text-yellow-800 border-yellow-200";
-        
-        return (
-            <span className={`px-2 py-1 rounded-full text-xs font-semibold border ${colorClass} capitalize`}>
-                {row.status}
-            </span>
-        );
-    }
-  },
-  {
-    key: 'published_at',
-    header: 'Published Date',
-    sortable: true,
-    render: (row) => row.published_at ? new Date(row.published_at).toLocaleDateString() : '-',
-    className: 'text-gray-600 text-sm',
-  },
-  {
-    key: 'actions',
-    header: 'Actions',
-    sortable: false,
-    render: (row, { handleEdit, openDeleteModal }) => (
-      <div className="flex gap-2">
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            handleEdit(row._id);
-          }}
-          className="p-1 bg-green-600 text-white border border-black rounded text-xs hover:bg-green-700 transition-colors"
-          aria-label="Edit"
-        >
-          <Edit className="w-4 h-4" />
-        </button>
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            openDeleteModal(row._id, row.name);
-          }}
-          className="p-1 bg-red-600 text-white border border-black rounded text-xs hover:bg-red-700 transition-colors"
-          aria-label="Delete"
-        >
-          <Trash2 className="w-4 h-4" />
-        </button>
-      </div>
-    ),
-  },
-];
-
 export default function WebzinesPage() {
+  const router = useRouter(); // Hook for navigation
   const { addNotification } = useNotification();
   const [webzines, setWebzines] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -171,8 +88,20 @@ export default function WebzinesPage() {
   }, [loadWebzines]);
 
   /* ------------- Handlers ------------- */
+  
+  // 1. Navigation Handler
+  const handleCardClick = (webzine) => {
+    // We pass the ID and Name as query parameters so the next page knows what to load
+    // The target URL will look like: /admin/webzine/arrange?id=xyz&title=november
+    const params = new URLSearchParams({
+      id: webzine._id,
+      title: webzine.name
+    });
+    router.push(`/admin/webzines/arrange?${params.toString()}`);
+  };
+
   const handleWebzineAdded = (newItem) => {
-    setWebzines((prev) => [newItem, ...prev]); // Add to top
+    setWebzines((prev) => [newItem, ...prev]); 
     setIsAddModalOpen(false);
     addNotification('success', 'Webzine added successfully!');
   };
@@ -185,12 +114,14 @@ export default function WebzinesPage() {
     addNotification('success', `Webzine "${updatedItem.name}" updated successfully!`);
   };
 
-  const handleEdit = (id) => {
+  const handleEdit = (e, id) => {
+    e.stopPropagation(); // Prevent clicking the card
     setItemToEditId(id);
     setIsEditModalOpen(true);
   };
 
-  const openDeleteModal = (id, name) => {
+  const openDeleteModal = (e, id, name) => {
+    e.stopPropagation(); // Prevent clicking the card
     setItemToDelete({ id, name });
     setIsDeleteModalOpen(true);
   };
@@ -239,34 +170,105 @@ export default function WebzinesPage() {
 
   return (
     <div className="container mx-auto px-6 pb-6 shadow-md rounded-xl">
-      <h1 className="text-2xl font-bold text-gray-800 mb-6 uppercase">Webzines Management</h1>
-
-      <div className="flex gap-10">
-        <main className="flex-1">
-          {/* Action Button: New Webzine */}
-          <div className="flex items-center justify-end mb-4">
-            <button
-              onClick={() => setIsAddModalOpen(true)}
-              className="flex items-center text-sm px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors cursor-pointer"
-            >
-              <PlusCircle className="w-5 h-5 mr-2" />
-              Add Webzine
-            </button>
-          </div>
-
-          {/* Table component */}
-          <Table
-            data={webzines}
-            columns={columns}
-            loading={loading}
-            onReload={loadWebzines}
-            handlers={{ handleEdit, openDeleteModal }}
-            searchKeys={['name', 'slug']}
-            selectable={false}
-            searchPlaceholder="Search by name or slug..."
-          />
-        </main>
+      <div className="flex justify-between items-center mb-8 pt-4">
+        <h1 className="text-2xl font-bold text-gray-800 uppercase flex items-center gap-2">
+           <LayoutGrid className="w-6 h-6 text-background" />
+           Webzines Management
+        </h1>
+        <button
+            onClick={() => setIsAddModalOpen(true)}
+            className="flex items-center text-sm px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors shadow-sm"
+          >
+            <PlusCircle className="w-5 h-5 mr-2" />
+            Add Webzine
+        </button>
       </div>
+
+      {/* Grid Layout for Webzines */}
+      <main className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        {webzines.length === 0 ? (
+           <div className="col-span-full text-center py-20 text-gray-500 bg-background rounded-lg border-2 border-dashed border-gray-200">
+             <BookOpen className="w-12 h-12 mx-auto mb-3 text-gray-300"/>
+             <p>No webzines found. Create your first issue!</p>
+           </div>
+        ) : (
+          webzines.map((webzine) => {
+             // Determine status color
+             let statusColor = "bg-background text-gray-600";
+             if (webzine.status === 'published') statusColor = "bg-green-100 text-green-700 border-green-200";
+             if (webzine.status === 'archived') statusColor = "bg-yellow-100 text-yellow-700 border-yellow-200";
+
+             return (
+               <div 
+                 key={webzine._id}
+                 onClick={() => handleCardClick(webzine)}
+                 className="group relative bg-background  rounded-xl overflow-hidden shadow-amber-500/50 shadow-sm transition-all duration-300 cursor-pointer hover:-translate-y-0.5 flex flex-col"
+               >
+                 {/* Cover Image Area */}
+                 <div className="relative h-48 w-full bg-gray-100 border-b border-gray-100">
+                   {webzine.cover_image ? (
+                     <Image
+                       loader={({ src }) => src}
+                       src={webzine.cover_image}
+                       alt={webzine.name}
+                       fill
+                       className="object-cover"
+                     />
+                   ) : (
+                     <div className="w-full h-full flex items-center justify-center text-gray-300">
+                       <BookOpen className="w-16 h-16" />
+                     </div>
+                   )}
+                   
+                   {/* Status Badge */}
+                   <div className="absolute top-3 right-3">
+                      <span className={`px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide border shadow-sm ${statusColor}`}>
+                        {webzine.status}
+                      </span>
+                   </div>
+                 </div>
+
+                 {/* Content Area */}
+                 <div className="p-4 flex-1 flex flex-col">
+                   <h3 className="text-lg font-bold text-gray-900 capitalize mb-1 group-hover:text-amber-500 transition-colors">
+                     {webzine.name}
+                   </h3>
+                   <p className="text-xs text-gray-500 line-clamp-2 mb-4 line-clamp-2">
+                     {webzine.description || "No description provided."}
+                   </p>
+                   
+                   <div className="mt-auto pt-3 border-t border-gray-100 flex items-center justify-between">
+                      <div className="flex items-center text-xs text-gray-400">
+                        <Calendar className="w-3 h-3 mr-1" />
+                        {webzine.published_at 
+                          ? new Date(webzine.published_at).toLocaleDateString() 
+                          : 'Draft'}
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="flex gap-2">
+                        <button
+                          onClick={(e) => handleEdit(e, webzine._id)}
+                          className="p-1.5 text-gray-500 hover:text-blue-600 hover:bg-blue-50 rounded transition-colors"
+                          title="Edit Settings"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={(e) => openDeleteModal(e, webzine._id, webzine.name)}
+                          className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                          title="Delete Webzine"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                   </div>
+                 </div>
+               </div>
+             )
+          })
+        )}
+      </main>
 
       {/* Add Modal */}
       <Modal

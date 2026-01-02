@@ -19,9 +19,8 @@ const Table = ({
   onRowClick = () => { },
   bulkActions = [],
   onBulkAction = () => { },
-  searchKeys = [], // specify which keys to search in, defaults to all string columns
-  onReload = null, // New prop for reload functionality
-  // Pass handlers explicitly for actions column, e.g., { handleEdit, handleDelete }
+  searchKeys = [],
+  onReload = null, 
   handlers = {},
 }) => {
   const [search, setSearch] = useState('');
@@ -34,11 +33,9 @@ const Table = ({
     return columns.some(col => col.key === key && col.render);
   };
 
-  // Filter and sort data
   const processedData = useMemo(() => {
     let filtered = data;
 
-    // Search filtering
     if (search && searchable) {
       const searchLower = search.toLowerCase();
       const keysToSearch = searchKeys.length ? searchKeys :
@@ -50,12 +47,7 @@ const Table = ({
       filtered = data.filter(item =>
         keysToSearch.some(key => {
           const value = item[key];
-          // Handle cases where render function might be used to derive a searchable value
           if (columnHasRenderForSearch(key) && typeof value === 'object' && value !== null && !Array.isArray(value)) {
-            // If the key refers to an object like 'parent_id' but we want to search 'parent_name'
-            // This is a complex case, and ideally, 'parent_name' would be a direct property for search.
-            // For now, assume simple string/number keys or pre-processed data.
-            // We'll address 'parent_name' directly in the page.js searchKeys.
             return false;
           }
           return String(value || '').toLowerCase().includes(searchLower);
@@ -74,7 +66,6 @@ const Table = ({
         if (aVal == null) return 1;
         if (bVal == null) return -1;
 
-        // Numeric sort if values are numbers, otherwise string comparison
         if (typeof aVal === 'number' && typeof bVal === 'number') {
           return (aVal - bVal) * direction;
         }
